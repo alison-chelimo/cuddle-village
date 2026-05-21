@@ -31,6 +31,9 @@ import BookClub from "./pages/BookClub";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import ChildProgressPortal from "./pages/ChildProgressPortal";
+import BookClubAdmin from "./pages/admin/BookClubAdmin";
+import FacilitatorRoute from "./components/FacilitatorRoute";
 
 function Layout() {
   const location = useLocation();
@@ -87,6 +90,8 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/portal/my-child" element={<ProtectedRoute><ChildProgressPortal /></ProtectedRoute>} />
+        <Route path="/admin/book-club" element={<FacilitatorRoute><BookClubAdmin /></FacilitatorRoute>} />
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

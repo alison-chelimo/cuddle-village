@@ -1,13 +1,16 @@
+import { useState, useEffect } from "react";
 import readersImg from "../assets/readers.png";
+import API from "../services/api";
+import { isAuthenticated } from "../utils/auth";
 
-const featuredBooks = [
+const DEFAULT_BOOKS = [
   { title: "Charlotte's Web", author: "E.B. White", emoji: "🕸️", tag: "Friendship" },
   { title: "The BFG", author: "Roald Dahl", emoji: "👁️", tag: "Adventure" },
   { title: "Matilda", author: "Roald Dahl", emoji: "✨", tag: "Empowerment" },
   { title: "The Lion, the Witch and the Wardrobe", author: "C.S. Lewis", emoji: "🦁", tag: "Fantasy" },
 ];
 
-const activities = [
+const DEFAULT_ACTIVITIES = [
   { icon: "📖", title: "Shared Reading", desc: "Chapter-by-chapter reading sessions that build stamina and focus." },
   { icon: "💬", title: "Book Discussion", desc: "Guided conversations about characters, themes and what students notice." },
   { icon: "✍️", title: "Writing Prompts", desc: "Short creative writing exercises inspired by the week's story." },
@@ -16,14 +19,14 @@ const activities = [
   { icon: "🗣️", title: "Vocabulary Builder", desc: "Learning rich new words from books and putting them into practice." },
 ];
 
-const skills = [
+const DEFAULT_SKILLS = [
   { icon: "👁️", label: "Reading Fluency", desc: "Smooth, expressive reading with growing speed and accuracy." },
   { icon: "🧠", label: "Comprehension", desc: "Understanding plot, character motivation, and story structure." },
   { icon: "💡", label: "Critical Thinking", desc: "Questioning, predicting, and forming opinions about what they read." },
   { icon: "✏️", label: "Creative Writing", desc: "Beginning to construct their own stories with structure and detail." },
 ];
 
-const milestones = [
+const DEFAULT_MILESTONES = [
   { label: "Week 1–2", title: "Getting into the Story", desc: "Introductions, setting group norms, and diving into our first book together." },
   { label: "Week 3–4", title: "Reading with Purpose", desc: "Practising fluency, exploring vocabulary, and making predictions." },
   { label: "Week 5–6", title: "Thinking Deeper", desc: "Discussing character motivations, story themes, and personal connections." },
@@ -31,6 +34,39 @@ const milestones = [
 ];
 
 export default function GrowingReadersHub() {
+  const [featuredBooks, setBooks]      = useState(DEFAULT_BOOKS);
+  const [activities,    setActivities] = useState(DEFAULT_ACTIVITIES);
+  const [skills]                        = useState(DEFAULT_SKILLS);
+  const [milestones,    setMilestones] = useState(DEFAULT_MILESTONES);
+  const [childData,     setChildData]  = useState(null);
+  const [upcoming,      setUpcoming]   = useState(null);
+
+  const storedUser = (() => { try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; } })();
+  const isEnrolled = isAuthenticated() && storedUser?.bookClub?.group === "growing-readers";
+
+  useEffect(() => {
+    API.get("/portal/hub-content/growing-readers").then(res => {
+      const data = res.data;
+      if (!data.length) return;
+      const b = data.filter(i => i.contentType === "book");
+      const a = data.filter(i => i.contentType === "activity");
+      const m = data.filter(i => i.contentType === "milestone");
+      if (b.length) setBooks(b.map(i => ({ title: i.title, author: i.author, emoji: i.emoji || "📚", tag: i.tag })));
+      if (a.length) setActivities(a.map(i => ({ icon: i.emoji || "📖", title: i.title, desc: i.description })));
+      if (m.length) setMilestones(m.map(i => ({ label: i.weekLabel, title: i.title, desc: i.description })));
+    }).catch(() => {});
+
+    if (isEnrolled) {
+      Promise.all([
+        API.get("/portal/my-child"),
+        API.get("/portal/upcoming-session"),
+      ]).then(([cRes, uRes]) => {
+        setChildData(cRes.data);
+        setUpcoming(uRes.data);
+      }).catch(() => {});
+    }
+  }, [isEnrolled]);
+
   return (
     <>
       <style>{`
@@ -324,6 +360,22 @@ export default function GrowingReadersHub() {
           .gr-hero { height: 420px; }
           .gr-activities { grid-template-columns: 1fr; }
         }
+
+        /* ── Child Progress Section ─────────────────────────────────── */
+        .gr-progress { background: #fff; border-radius: 24px; padding: 36px; margin: 0 60px 60px; box-shadow: 0 4px 24px rgba(91,184,245,0.1); border: 2px solid #dbeeff; }
+        .gr-progress-title { font-size: 22px; font-weight: 900; color: #0e1f2a; margin: 0 0 6px; }
+        .gr-progress-sub   { font-size: 14px; color: #aaa; font-weight: 600; margin: 0 0 24px; }
+        .gr-progress-grid  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .gr-progress-card  { background: #f0f6ff; border-radius: 16px; padding: 20px; border: 1.5px solid #dbeeff; }
+        .gr-progress-card-title { font-size: 11px; font-weight: 800; color: #1a6fa8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .gr-progress-num   { font-size: 32px; font-weight: 900; color: #0e1f2a; }
+        .gr-skill-pill     { display: inline-block; background: #dbeeff; color: #1a6fa8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; margin: 3px 4px 3px 0; }
+        .gr-progress-link  { display: inline-block; margin-top: 20px; padding: 11px 24px; background: linear-gradient(135deg, #5bb8f5, #1a6fa8); color: #fff; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; transition: opacity 0.2s; }
+        .gr-progress-link:hover { opacity: 0.88; }
+        @media (max-width: 900px) {
+          .gr-progress { margin: 0 20px 40px; padding: 24px; }
+          .gr-progress-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       <div className="gr-page">
@@ -471,6 +523,60 @@ export default function GrowingReadersHub() {
             ))}
           </div>
         </div>
+
+        {/* ── Child Progress (enrolled parents only) ─────────────────── */}
+        {isEnrolled && childData && (
+          <div className="gr-progress">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+              <span style={{ fontSize: 28 }}>📖</span>
+              <div>
+                <div className="gr-progress-title">
+                  {childData.childName ? `${childData.childName}'s Progress` : "My Child's Progress"}
+                </div>
+                <div className="gr-progress-sub">Growing Readers · {childData.schedule || "Book Club"}</div>
+              </div>
+            </div>
+
+            <div className="gr-progress-grid">
+              <div className="gr-progress-card">
+                <div className="gr-progress-card-title">📅 Sessions Attended</div>
+                <div className="gr-progress-num">{childData.sessionsAttended?.length || 0}</div>
+              </div>
+              <div className="gr-progress-card">
+                <div className="gr-progress-card-title">📚 Books Read</div>
+                <div className="gr-progress-num">{childData.booksRead?.length || 0}</div>
+                {childData.booksRead?.slice(0, 2).map(b => (
+                  <div key={b.title} style={{ fontSize: 12, color: "#555", fontWeight: 600, marginTop: 4 }}>{b.title}</div>
+                ))}
+              </div>
+              <div className="gr-progress-card">
+                <div className="gr-progress-card-title">🌟 Skills Achieved</div>
+                <div className="gr-progress-num">{childData.skills?.length || 0}</div>
+                {childData.skills?.slice(0, 3).map(s => (
+                  <span key={s.name} className="gr-skill-pill">{s.name}</span>
+                ))}
+              </div>
+            </div>
+
+            {upcoming && (
+              <div style={{ marginTop: 20, background: "#dbeeff", borderRadius: 14, padding: "16px 20px" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#1a6fa8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>📅 Next Session</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: "#0e1f2a" }}>{new Date(upcoming.date).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}</div>
+                {upcoming.bookTitle && <div style={{ fontSize: 13, color: "#555", fontWeight: 600, marginTop: 4 }}>📖 {upcoming.bookTitle}{upcoming.bookAuthor ? ` by ${upcoming.bookAuthor}` : ""}</div>}
+                {upcoming.title && <div style={{ fontSize: 13, color: "#555", fontWeight: 600, marginTop: 2 }}>🗒 {upcoming.title}</div>}
+              </div>
+            )}
+
+            {childData.notes && (
+              <div style={{ marginTop: 16, background: "#fffbeb", borderRadius: 14, padding: "14px 18px", border: "1.5px solid #f7c94855" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#b8860b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>💬 Facilitator Note</div>
+                <div style={{ fontSize: 14, color: "#555", fontWeight: 600 }}>{childData.notes}</div>
+              </div>
+            )}
+
+            <a href="/portal/my-child" className="gr-progress-link">View Full Progress →</a>
+          </div>
+        )}
 
         {/* ── CTA ────────────────────────────────────────────────────── */}
         <div className="gr-cta">

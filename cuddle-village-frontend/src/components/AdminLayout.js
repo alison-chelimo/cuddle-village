@@ -11,11 +11,12 @@ function AdminLayout({ children }) {
   };
 
   const navLinks = [
-    { to: "/admin/admin-dashboard", label: "Dashboard", emoji: "📊" },
-    { to: "/admin/products", label: "Products", emoji: "🛍️" },
-    { to: "/admin/products/add", label: "Add Product", emoji: "➕" },
-    { to: "/admin/users", label: "Users", emoji: "👥" },
-    { to: "/admin/orders", label: "Orders", emoji: "📋" },
+    { to: "/admin/admin-dashboard", label: "Dashboard",  emoji: "📊" },
+    { to: "/admin/products",        label: "Products",   emoji: "🛍️" },
+    { to: "/admin/products/add",    label: "Add Product",emoji: "➕" },
+    { to: "/admin/users",           label: "Users",      emoji: "👥" },
+    { to: "/admin/orders",          label: "Orders",     emoji: "📋" },
+    { to: "/admin/book-club",       label: "Book Club",  emoji: "📚" },
   ];
 
   return (
