@@ -7,7 +7,7 @@ router.post("/login", login);
 router.post("/verify", verifyEmail);
 router.post("/resend", resendCode);
 router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:token", resetPassword);
+router.post("/reset-password", resetPassword);
 router.get("/profile", protect, getProfile);
 router.put("/profile", protect, updateProfile);
 router.put("/profile/password", protect, changePassword);
