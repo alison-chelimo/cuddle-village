@@ -51,6 +51,7 @@ function Layout() {
         } />
         <Route path="/verify" element={<Verify />} />
         <Route path="/book-club" element={<BookClub />} />
+        <Route path="/book-club/register" element={<BookClubRegister />} />
         <Route path="/early-learners" element={<EarlyLearnersHub />} />
         <Route path="/growing-readers" element={<GrowingReadersHub />} />
 

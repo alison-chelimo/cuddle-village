@@ -20,27 +20,26 @@ function EditProduct() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await API.get(`/products/${id}`);
+        setForm({
+          name: res.data.name || "",
+          price: res.data.price || "",
+          description: res.data.description || "",
+          category: res.data.category || "",
+          stock: res.data.stock || "",
+          image: res.data.image || "",
+        });
+      } catch (err) {
+        console.error(err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchProduct();
-  }, []);
-
-  const fetchProduct = async () => {
-    try {
-      const res = await API.get(`/products/${id}`);
-      setForm({
-        name: res.data.name || "",
-        price: res.data.price || "",
-        description: res.data.description || "",
-        category: res.data.category || "",
-        stock: res.data.stock || "",
-        image: res.data.image || "",
-      });
-    } catch (err) {
-      console.error(err);
-      setError(true);  
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [id]);
 
   const handleChange = (e) => {
     setForm({

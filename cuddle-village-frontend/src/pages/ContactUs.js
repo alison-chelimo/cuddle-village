@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import API from "../services/api";
 
 function ContactUs() {
   const [form, setForm] = useState({
@@ -11,7 +11,7 @@ function ContactUs() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.post("http://localhost:5000/api/contact", form);
+    await API.post("/contact", form);
     alert("Message sent!");
   };
 

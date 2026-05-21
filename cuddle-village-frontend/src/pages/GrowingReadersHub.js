@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import readersImg from "../assets/readers.png";
 
 const featuredBooks = [

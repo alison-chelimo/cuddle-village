@@ -219,7 +219,7 @@ function Verify() {
           </button>
 
           <div className="resend-link">
-            Didn't get the code? <a href="#" onClick={handleResend}>Resend</a>
+            Didn't get the code? <button onClick={handleResend} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Resend</button>
           </div>
         </div>
       </div>
