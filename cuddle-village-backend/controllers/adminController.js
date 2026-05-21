@@ -16,7 +16,8 @@ exports.getStats = async (req, res) => {
     const users = await User.countDocuments();
     const orders = await Order.countDocuments();
     const revenueAgg = await Order.aggregate([
-        { $group: { _id: null, total: { $sum: "$total" } } }
+        { $match: { paymentStatus: "paid" } },
+        { $group: { _id: null, total: { $sum: "$totalPrice" } } }
     ]);
 
     res.json({
