@@ -18,7 +18,7 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = crypto.randomInt(100000, 1000000).toString();
 
     const getGroup = (age) => {
     const n = parseInt(age, 10);
@@ -150,7 +150,7 @@ exports.resendCode = async (req, res) => {
   const user = await User.findOne({ email: email.toLowerCase() });
   if(!user) return res.status(400).json({message: "User not found" });
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   user.verificationCode = code;
   await user.save();
 
@@ -168,7 +168,7 @@ exports.forgotPassword = async (req, res) => {
     // Always respond 200 to avoid leaking whether an account exists
     if (!user) return res.json({ message: "If that email is registered, a reset code has been sent." });
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = crypto.randomInt(100000, 1000000).toString();
     user.resetPasswordToken   = code;
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
