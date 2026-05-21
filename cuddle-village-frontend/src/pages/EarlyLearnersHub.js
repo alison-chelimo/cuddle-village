@@ -448,7 +448,7 @@ export default function EarlyLearnersHub() {
             and build vocabulary for early learners.
           </p>
           <div className="el-books">
-            {weeklyBooks.map((b) => (
+            {books.map((b) => (
               <div className="el-book" key={b.title}>
                 <span className="el-book-emoji">{b.emoji}</span>
                 <div className="el-book-tag">{b.tag}</div>

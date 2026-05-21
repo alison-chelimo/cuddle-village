@@ -16,7 +16,7 @@ const TIER_CONFIG = {
 export default function Profile() {
   const navigate = useNavigate();
   const { toasts, toast } = useToast();
-  const { points, lifetimePoints, tier, nextTier, refresh: refreshLoyalty } = useLoyalty();
+  const { points, lifetimePoints, tier, nextTier } = useLoyalty();
   const [transactions, setTransactions] = useState([]);
 
   const [profile, setProfile]   = useState(null);

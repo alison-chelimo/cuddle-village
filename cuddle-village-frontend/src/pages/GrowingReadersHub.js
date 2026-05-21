@@ -36,7 +36,7 @@ const DEFAULT_MILESTONES = [
 export default function GrowingReadersHub() {
   const [featuredBooks, setBooks]      = useState(DEFAULT_BOOKS);
   const [activities,    setActivities] = useState(DEFAULT_ACTIVITIES);
-  const [skills,        setSkills]     = useState(DEFAULT_SKILLS);
+  const [skills]                        = useState(DEFAULT_SKILLS);
   const [milestones,    setMilestones] = useState(DEFAULT_MILESTONES);
   const [childData,     setChildData]  = useState(null);
   const [upcoming,      setUpcoming]   = useState(null);
