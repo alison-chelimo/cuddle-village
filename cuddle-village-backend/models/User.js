@@ -5,10 +5,10 @@ const userSchema = new mongoose.Schema({
     email: { type: String, unique: true },
     password: String,
     phone: String,
-    role: { 
-        type: String, 
-        enum: ["user", "admin"],
-        default: "user" 
+    role: {
+        type: String,
+        enum: ["user", "admin", "facilitator"],
+        default: "user"
     },
     isVerified: {
         type: Boolean,
@@ -33,7 +33,11 @@ const userSchema = new mongoose.Schema({
         group: {
             type: String,
             enum: ["early-learners", "growing-readers", "group3"]
-        }
+        },
+        sessionsAttended: [{ type: require("mongoose").Schema.Types.ObjectId, ref: "LearningSession" }],
+        booksRead:  [{ title: String, completedAt: Date }],
+        skills:     [{ name: String, achievedAt: Date }],
+        notes:      String,
     }
 }, { timestamps: true });
 

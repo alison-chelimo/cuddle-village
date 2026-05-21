@@ -30,3 +30,12 @@ exports.adminOnly = (req, res, next) => {
     return res.status(403).json({ message: "Admin only" });
   }
 };
+
+// Allows both admin and facilitator roles
+exports.facilitatorOnly = (req, res, next) => {
+  if (req.user && (req.user.role === "admin" || req.user.role === "facilitator")) {
+    next();
+  } else {
+    return res.status(403).json({ message: "Facilitator access required" });
+  }
+};
