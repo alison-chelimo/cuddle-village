@@ -4,28 +4,23 @@ import AdminLayout from "../../components/AdminLayout";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 function AdminDashboard() {
-  const [stats, setStats] = useState({ users: 0, orders: 0, revenue: 0 });
+  const [stats, setStats] = useState({ users: 0, orders: 0, revenue: 0, chartData: [] });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchStats(); }, []);
- 
-  const fetchStats = async () => {
-    try {
-      const res = await API.get("/admin/stats");
-      setStats(res.data);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to load dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const chartData = [
-    { name: "Jan", sales: 4000 },
-    { name: "Feb", sales: 3000 },
-    { name: "Mar", sales: 5000 },
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await API.get("/admin/stats");
+        setStats(res.data);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const statCards = [
     { label: "Total Users", value: stats.users, emoji: "👥", color: "#f0edff", accent: "#afa7e7" },
@@ -118,10 +113,10 @@ function AdminDashboard() {
           <div style={styles.chartBox}>
             <div style={styles.chartHeader}>
               <h2 style={styles.chartTitle}>Sales Overview</h2>
-              <span style={styles.chartBadge}>Last 3 months</span>
+              <span style={styles.chartBadge}>Last 12 months</span>
             </div>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData} barSize={40}>
+              <BarChart data={stats.chartData} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0edff" vertical={false} />
                 <XAxis
                   dataKey="name"
