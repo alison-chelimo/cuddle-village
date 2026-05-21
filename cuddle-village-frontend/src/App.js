@@ -29,7 +29,6 @@ import Footer from "./components/Footer";
 import AboutUs from "./pages/AboutUs";
 import BookClub from "./pages/BookClub";
 import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import ChildProgressPortal from "./pages/ChildProgressPortal";
 import BookClubAdmin from "./pages/admin/BookClubAdmin";
@@ -88,7 +87,6 @@ function Layout() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/portal/my-child" element={<ProtectedRoute><ChildProgressPortal /></ProtectedRoute>} />
         <Route path="/admin/book-club" element={<FacilitatorRoute><BookClubAdmin /></FacilitatorRoute>} />
