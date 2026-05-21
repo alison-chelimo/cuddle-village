@@ -25,8 +25,8 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/contact", require("./routes/contactRoute"));
+app.use("/api/book-club", require("./routes/bookClubRoute"));
 app.use("/api/paystack", require("./routes/paystackRoute"));
 
 mongoose.connect(process.env.MONGO_URI)

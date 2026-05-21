@@ -1,14 +1,12 @@
 import React, { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
 
 // Paystack inline JS is loaded once via a <script> tag in public/index.html:
 // <script src="https://js.paystack.co/v1/inline.js"></script>
 
 function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
-  const navigate = useNavigate();
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
   const [loading, setLoading] = useState(false);
@@ -58,14 +56,14 @@ function Checkout() {
         callbackUrl: `${window.location.origin}/order-success?orderId=${order._id}`,
       });
 
-      const { authorization_url, reference } = paystackRes.data;
+      const { authorization_url } = paystackRes.data;
       if (!authorization_url) throw new Error("Could not get Paystack authorization URL");
 
       setLoading(false);
+      clearCart();
 
-      // 3. Open Paystack popup (requires inline.js loaded in <head>)
-      //    Supports: card, M-Pesa (mobile_money), bank transfer, USSD — all in one popup.
-    window.location.href = authorization_url;
+      // Redirect to Paystack hosted payment page
+      window.location.href = authorization_url;
     } catch (err) {
       console.error("Checkout error:", err);
       setError(err.response?.data?.message || err.message || "Checkout failed. Please try again.");

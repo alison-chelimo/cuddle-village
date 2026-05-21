@@ -44,8 +44,6 @@ function BookClubRegister() {
 
   const handleChild   = (e) => setChild({ ...child, [e.target.name]: e.target.value });
   const handleParent  = (e) => setParent({ ...parent, [e.target.name]: e.target.value });
-  const handleProgram = (e) => setProgram({ ...program, [e.target.name]: e.target.value });
-
   // Derive group from age
   const age = parseInt(child.age, 10);
   const group = age >= 4 && age <= 5 ? "early-learners"
@@ -75,7 +73,7 @@ function BookClubRegister() {
       setSubmitted(true);
       // Redirect to the appropriate group hub after a moment
       setTimeout(() => {
-        window.location.href = `/book-club/${group}`;
+        window.location.href = `/${group}`;
       }, 3000);
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed. Please try again.");

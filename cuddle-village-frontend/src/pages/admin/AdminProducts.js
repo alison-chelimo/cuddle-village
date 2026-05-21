@@ -7,7 +7,6 @@ function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { 
@@ -27,7 +26,6 @@ function AdminProducts() {
     setProducts(normalized);     
   } catch (err) {
     console.error(err);
-    setError(true);
   } finally {
     setLoading(false);
   }
