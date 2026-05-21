@@ -37,10 +37,10 @@ function Login() {
 
       // Book club groups
       else if (group === "early-learners") {
-        navigate("/book-club/early-learners");
+        navigate("/early-learners");
       }
       else if (group === "growing-readers") {
-        navigate("/book-club/growing-readers");
+        navigate("/growing-readers");
       }
       else if (group === "group3") {
         navigate("/book-club/group3");
