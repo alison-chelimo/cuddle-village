@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema({
     verificationCode: String,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    loyaltyPoints:  { type: Number, default: 0 },
+    lifetimePoints: { type: Number, default: 0 },
+    loyaltyTier:    { type: String, enum: ["Bronze", "Silver", "Gold", "Platinum"], default: "Bronze" },
     bookClub: {
         childName: String,
         childAge: Number,

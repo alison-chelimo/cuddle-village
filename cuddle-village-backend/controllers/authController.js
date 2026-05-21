@@ -89,7 +89,10 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        bookClub: user.bookClub || null
+        bookClub:       user.bookClub || null,
+        loyaltyPoints:  user.loyaltyPoints  || 0,
+        loyaltyTier:    user.loyaltyTier    || "Bronze",
+        lifetimePoints: user.lifetimePoints || 0,
       }
     });
 

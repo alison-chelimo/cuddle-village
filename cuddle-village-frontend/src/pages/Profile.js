@@ -4,10 +4,20 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import API from "../services/api";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import { useLoyalty } from "../context/LoyaltyContext";
+
+const TIER_CONFIG = {
+  Bronze:   { color: "#b8860b", bg: "#fffbeb", next: 1000  },
+  Silver:   { color: "#555",    bg: "#f5f5f5", next: 5000  },
+  Gold:     { color: "#d4a017", bg: "#fff9eb", next: 15000 },
+  Platinum: { color: "#6b5fc7", bg: "#f5f2ff", next: null  },
+};
 
 export default function Profile() {
   const navigate = useNavigate();
   const { toasts, toast } = useToast();
+  const { points, lifetimePoints, tier, nextTier, refresh: refreshLoyalty } = useLoyalty();
+  const [transactions, setTransactions] = useState([]);
 
   const [profile, setProfile]   = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -29,10 +39,14 @@ export default function Profile() {
   const pwValid = pwRules.every(r => r.met);
 
   useEffect(() => {
-    API.get("/auth/profile")
-      .then(res => {
-        setProfile(res.data);
-        setForm({ name: res.data.name || "", phone: res.data.phone || "" });
+    Promise.all([
+      API.get("/auth/profile"),
+      API.get("/loyalty/transactions"),
+    ])
+      .then(([profileRes, txnRes]) => {
+        setProfile(profileRes.data);
+        setForm({ name: profileRes.data.name || "", phone: profileRes.data.phone || "" });
+        setTransactions(txnRes.data || []);
       })
       .catch(() => navigate("/login"))
       .finally(() => setLoading(false));
@@ -175,6 +189,16 @@ export default function Profile() {
         .pw-rule  { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; }
         .pw-rule.met   { color: #16a34a; }
         .pw-rule.unmet { color: #bbb; }
+
+        .loyalty-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .loyalty-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+        .tier-badge   { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 900; margin-left: 8px; }
+        .progress-bar-wrap { background: #f0eeff; border-radius: 20px; height: 8px; overflow: hidden; margin: 8px 0 4px; }
+        .progress-bar-fill { height: 100%; border-radius: 20px; transition: width 0.6s ease; }
+        .txn-row  { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f5f3ff; font-size: 13px; }
+        .txn-row:last-child { border-bottom: none; }
+        .txn-earn   { color: #16a34a; font-weight: 900; }
+        .txn-redeem { color: #c0392b; font-weight: 900; }
       `}</style>
 
       <div className="profile-page">
@@ -195,6 +219,65 @@ export default function Profile() {
                 📚 Book Club · {profile.bookClub.group}
               </span>
             )}
+          </div>
+
+          {/* Loyalty card */}
+          <div className="profile-card">
+            <div className="card-title">Loyalty & Rewards</div>
+            {(() => {
+              const cfg      = TIER_CONFIG[tier] || TIER_CONFIG.Bronze;
+              const progress = nextTier ? Math.min(100, Math.round((lifetimePoints / nextTier) * 100)) : 100;
+              return (
+                <>
+                  <div className="loyalty-hero">
+                    <div className="loyalty-icon" style={{ background: cfg.bg }}>
+                      {tier === "Bronze" ? "🥉" : tier === "Silver" ? "🥈" : tier === "Gold" ? "🥇" : "💎"}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 26, fontWeight: 900, color: "#2d2640" }}>
+                        {points.toLocaleString()} <span style={{ fontSize: 14, color: "#aaa", fontWeight: 600 }}>points</span>
+                        <span className="tier-badge" style={{ background: cfg.bg, color: cfg.color }}>{tier}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>
+                        {nextTier
+                          ? `${(nextTier - lifetimePoints).toLocaleString()} pts to next tier`
+                          : "You've reached the top tier 🎉"}
+                      </div>
+                    </div>
+                  </div>
+                  {nextTier && (
+                    <>
+                      <div className="progress-bar-wrap">
+                        <div className="progress-bar-fill" style={{ width: `${progress}%`, background: cfg.color }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#bbb", fontWeight: 700 }}>
+                        <span>{lifetimePoints.toLocaleString()} pts</span>
+                        <span>{nextTier.toLocaleString()} pts</span>
+                      </div>
+                    </>
+                  )}
+                  <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600, marginTop: 12, padding: "10px 14px", background: "#faf9fe", borderRadius: 10, border: "1px solid #f0eeff" }}>
+                    💡 Earn <strong>1 point</strong> per KES 10 spent. Redeem <strong>100 points</strong> for KES 50 off at checkout.
+                  </div>
+                  {transactions.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Recent Activity</div>
+                      {transactions.slice(0, 5).map(t => (
+                        <div className="txn-row" key={t._id}>
+                          <div>
+                            <div style={{ fontWeight: 700, color: "#2d2640" }}>{t.reason || (t.type === "earn" ? "Points earned" : "Points redeemed")}</div>
+                            <div style={{ fontSize: 11, color: "#bbb", fontWeight: 600 }}>{new Date(t.createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</div>
+                          </div>
+                          <span className={t.type === "earn" ? "txn-earn" : "txn-redeem"}>
+                            {t.type === "earn" ? "+" : ""}{t.points} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Edit profile */}

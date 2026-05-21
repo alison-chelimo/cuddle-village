@@ -1,5 +1,7 @@
 import React, { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
+import { useLoyalty } from "../context/LoyaltyContext";
+import { isAuthenticated } from "../utils/auth";
 import API from "../services/api";
 
 // Paystack inline JS is loaded once via a <script> tag in public/index.html:
@@ -7,14 +9,20 @@ import API from "../services/api";
 
 function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
+  const { points, refresh: refreshLoyalty } = useLoyalty();
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [pointsInput, setPointsInput]       = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [redeemError, setRedeemError]        = useState("");
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total     = Math.max(0, cartTotal - appliedDiscount);
 
   // ── Main checkout flow ──────────────────────────────────────────────────────
   const handleCheckout = async () => {
@@ -47,12 +55,27 @@ function Checkout() {
       const order = orderRes.data;
       if (!order?._id) throw new Error("Order creation failed");
 
-      // 2. Ask your backend to initialise a Paystack transaction
+      // 2. Apply loyalty points redemption if requested
+      let finalAmount = total;
+      if (pointsInput && parseInt(pointsInput, 10) > 0) {
+        try {
+          const redeemRes = await API.post("/loyalty/redeem", {
+            pointsToRedeem: parseInt(pointsInput, 10),
+            orderId: order._id,
+          });
+          finalAmount = redeemRes.data.newTotal;
+          refreshLoyalty();
+        } catch (redeemErr) {
+          // Non-fatal — proceed with original total
+          console.warn("Points redemption skipped:", redeemErr.response?.data?.message);
+        }
+      }
+
+      // 3. Ask your backend to initialise a Paystack transaction
       const paystackRes = await API.post("/paystack/initialize", {
         email: form.email,
-        amount: total,
+        amount: finalAmount,
         orderId: order._id,
-        // Your frontend's success redirect (Paystack also calls your webhook)
         callbackUrl: `${window.location.origin}/order-success?orderId=${order._id}`,
       });
 
@@ -399,6 +422,52 @@ function Checkout() {
             )}
 
             <div className="summary-divider" />
+
+            {/* ── Loyalty redemption ── */}
+            {isAuthenticated() && points > 0 && (
+              <div style={{ background: "#faf9fe", border: "1.5px solid #e8e4f8", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#8b7fd4", marginBottom: 8 }}>
+                  ★ You have <strong>{points.toLocaleString()}</strong> points (worth KES {Math.floor(points / 2).toLocaleString()})
+                </div>
+                {appliedDiscount > 0 ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>✅ KES {appliedDiscount} discount applied</span>
+                    <button type="button" onClick={() => { setAppliedDiscount(0); setPointsInput(""); }} style={{ fontSize: 12, color: "#c0392b", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Remove</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max={points}
+                      value={pointsInput}
+                      onChange={e => { setPointsInput(e.target.value); setRedeemError(""); }}
+                      placeholder={`Up to ${points} pts`}
+                      style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e8e4f8", fontSize: 13, fontFamily: "Nunito, sans-serif", fontWeight: 600 }}
+                    />
+                    <button type="button"
+                      onClick={() => {
+                        const pts = parseInt(pointsInput, 10);
+                        if (!pts || pts <= 0) return setRedeemError("Enter a valid amount.");
+                        if (pts > points) return setRedeemError("Not enough points.");
+                        setAppliedDiscount(Math.round(pts / 2));
+                        setRedeemError("");
+                      }}
+                      style={{ padding: "8px 16px", background: "linear-gradient(135deg,#C3B1E1,#afa7e7)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "Nunito, sans-serif" }}>
+                      Apply
+                    </button>
+                  </div>
+                )}
+                {redeemError && <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "6px 0 0" }}>{redeemError}</p>}
+              </div>
+            )}
+
+            {appliedDiscount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#16a34a", marginBottom: 8 }}>
+                <span>Points discount</span>
+                <span>− KES {appliedDiscount}</span>
+              </div>
+            )}
 
             <div className="summary-total">
               <span>Total</span>
