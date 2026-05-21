@@ -1,13 +1,28 @@
 import React, { useState } from "react";
 import API from "../services/api";
 import { Link } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import useToast from "../hooks/useToast";
+import Toast from "../components/Toast";
 
 function Register() {
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { toasts, toast } = useToast();
+
+  const pwRules = [
+    { label: "At least 8 characters",       met: form.password.length >= 8 },
+    { label: "One uppercase letter",         met: /[A-Z]/.test(form.password) },
+    { label: "One number",                   met: /[0-9]/.test(form.password) },
+    { label: "One special character",        met: /[!@#$%^&*(),.?":{}|<>\-_]/.test(form.password) },
+  ];
+  const pwValid = pwRules.every(r => r.met);
 
   // Book-club enrollment toggle
   const [joinBookClub, setJoinBookClub] = useState(false);
@@ -40,11 +55,13 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // FIX 3: Validate book-club fields before submitting
+    if (!pwValid) return toast.error("Please meet all password requirements before continuing.");
+    if (form.password !== confirmPassword) return toast.error("Passwords do not match.");
+
     if (joinBookClub) {
-      if (!getGroup(bookClub.childAge)) return alert("Child age must be between 4 and 8");
-      if (!bookClub.plan) return alert("Please select a membership plan");
-      if (!bookClub.schedule) return alert("Please select a preferred schedule");
+      if (!getGroup(bookClub.childAge)) return toast.error("Child age must be between 4 and 8 for the Book Club.");
+      if (!bookClub.plan)     return toast.error("Please select a membership plan.");
+      if (!bookClub.schedule) return toast.error("Please select a preferred schedule.");
     }
 
     setLoading(true);
@@ -56,7 +73,7 @@ function Register() {
 
       await API.post("/auth/register", payload);
 
-      alert("Check your email for a verification code");
+      toast.success("Account created! Check your email for a verification code.");
       localStorage.setItem("verifyEmail", form.email);
 
       if (joinBookClub) {
@@ -67,8 +84,7 @@ function Register() {
       // After verification the server will know the group; redirect accordingly.
       window.location.href = "/verify";
     } catch (err) {
-      const message = err.response?.data?.message || "Registration failed";
-      alert(message);
+      toast.error(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -80,6 +96,7 @@ function Register() {
 
   return (
     <>
+      <Toast toasts={toasts} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
@@ -195,6 +212,22 @@ function Register() {
         .form-input::placeholder { color: #ccc; }
 
         select.form-input { cursor: pointer; }
+
+        .input-wrap { position: relative; }
+        .input-wrap .form-input { padding-right: 44px; }
+        .eye-btn {
+          position: absolute; right: 13px; top: 50%;
+          transform: translateY(-50%);
+          background: none; border: none; cursor: pointer;
+          color: #bbb; padding: 0; display: flex; align-items: center;
+          transition: color 0.2s;
+        }
+        .eye-btn:hover { color: #8b7fd4; }
+
+        .pw-rules { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 4px; }
+        .pw-rule  { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; transition: color 0.2s; }
+        .pw-rule.met   { color: #16a34a; }
+        .pw-rule.unmet { color: #bbb; }
 
         .remember-label {
           display: flex; align-items: center; gap: 8px;
@@ -391,7 +424,48 @@ function Register() {
 
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input name="password" type="password" placeholder="Choose a strong password" className="form-input" onChange={handleChange} required />
+                <div className="input-wrap">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Choose a strong password"
+                    className="form-input"
+                    onChange={handleChange}
+                    required
+                  />
+                  <button type="button" className="eye-btn" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
+                {form.password && (
+                  <ul className="pw-rules">
+                    {pwRules.map(r => (
+                      <li key={r.label} className={`pw-rule ${r.met ? "met" : "unmet"}`}>
+                        {r.met ? "✅" : "❌"} {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Confirm Password</label>
+                <div className="input-wrap">
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="Repeat your password"
+                    className="form-input"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button type="button" className="eye-btn" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
+                    {showConfirm ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
+                {confirmPassword && form.password !== confirmPassword && (
+                  <p style={{ color: "#e74c3c", fontSize: 12, fontWeight: 700, marginTop: 6 }}>Passwords do not match</p>
+                )}
               </div>
 
               <label className="remember-label">
