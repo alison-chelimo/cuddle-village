@@ -1,5 +1,6 @@
 const axios = require("axios");
 const Order = require("../models/Order");
+const { awardLoyaltyPoints } = require("../utils/loyaltyHelper");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY; // sk_live_xxx or sk_test_xxx
 const BASE_URL = "https://api.paystack.co";
@@ -72,13 +73,15 @@ exports.verifyPayment = async (req, res) => {
       const orderId = data.metadata?.orderId;
       console.log("✅ Payment verified for order:", orderId, "ref:", reference);
 
-      // Update MongoDB order status to "paid" here:
       if (orderId) {
-        await Order.findByIdAndUpdate(orderId, {
-          paymentStatus: "paid",
-          paymentReference: reference,
-          paidAt: new Date(),
-        });
+        const order = await Order.findById(orderId);
+        if (order) {
+          order.paymentStatus    = "paid";
+          order.paymentReference = reference;
+          order.paidAt           = new Date();
+          await order.save();
+          await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
+        }
       }
     }
 
@@ -121,22 +124,19 @@ exports.webhook = async (req, res) => {
   console.log("📲 Paystack webhook:", event.event, event.data?.reference);
 
   if (event.event === "charge.success") {
-    const data = event.data;
+    const data    = event.data;
     const orderId = data.metadata?.orderId;
-
     console.log("✅ Charge success for order:", orderId, "| ref:", data.reference);
 
-    // Update MongoDB order status to "paid" here:
-    if (event.event === "charge.success") {
-      const data = event.data;
-      const orderId = data.metadata?.orderId;
-
-      await Order.findByIdAndUpdate(orderId, {
-        paymentStatus: "paid",
-        paymentReference: data.reference,
-        paymentChannel: data.channel,
-        paidAt: new Date(data.paid_at),
-      });
+    if (orderId) {
+      const order = await Order.findById(orderId);
+      if (order) {
+        order.paymentStatus    = "paid";
+        order.paymentReference = data.reference;
+        order.paidAt           = new Date(data.paid_at);
+        await order.save();
+        await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
+      }
     }
   }
 
