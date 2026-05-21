@@ -247,6 +247,9 @@ function Navbar() {
           {isAuthenticated() && (
             <Link to="/orders" className={`nav-link ${isActive("/orders") ? "active" : ""}`}>Orders</Link>
           )}
+          {isAuthenticated() && (
+            <Link to="/profile" className={`nav-link ${isActive("/profile") ? "active" : ""}`}>Profile</Link>
+          )}
           <div className="nav-divider" />
           <Link to="/cart" className="nav-cart">
             <FaShoppingCart size={16} />
@@ -293,6 +296,9 @@ function Navbar() {
         <Link to="/products" className={`mobile-nav-link ${isActive("/products") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Products</Link>
         {isAuthenticated() && (
           <Link to="/orders" className={`mobile-nav-link ${isActive("/orders") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Orders</Link>
+        )}
+        {isAuthenticated() && (
+          <Link to="/profile" className={`mobile-nav-link ${isActive("/profile") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Profile</Link>
         )}
 
         <Link to="/cart" className={`mobile-nav-link ${isActive("/cart") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>

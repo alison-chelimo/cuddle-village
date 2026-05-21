@@ -30,6 +30,7 @@ import AboutUs from "./pages/AboutUs";
 import BookClub from "./pages/BookClub";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile";
 
 function Layout() {
   const location = useLocation();
@@ -85,6 +86,7 @@ function Layout() {
         <Route path="/about" element={<AboutUs />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

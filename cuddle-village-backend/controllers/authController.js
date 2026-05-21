@@ -222,3 +222,53 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: "Failed to reset password" });
   }
 };
+
+// GET PROFILE
+exports.getProfile = async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password -verificationCode -resetPasswordToken -resetPasswordExpires");
+  res.json(user);
+};
+
+// UPDATE PROFILE (name, phone)
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (name)  user.name  = name.trim();
+    if (phone) user.phone = phone.trim();
+
+    await user.save();
+    res.json({ message: "Profile updated", user: { name: user.name, email: user.email, phone: user.phone } });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+// CHANGE PASSWORD (requires current password)
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Both current and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user._id);
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ message: "Failed to change password" });
+  }
+};
