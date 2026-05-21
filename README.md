@@ -1,4 +1,4 @@
-# The Cuddle Village Inc.
+# The Cuddle Village Inc
 
 A premium baby and parenting e-commerce platform for the Kenyan market. Combines a product store, a children's book club, a loyalty rewards programme, and an integrated learning portal for children.
 
@@ -7,7 +7,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Frontend | React 19, React Router 6, Context API, Axios, Recharts |
 | Backend | Node.js, Express 5, MongoDB / Mongoose |
 | Auth | JWT (1-day expiry), bcryptjs, email verification |
@@ -70,7 +70,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ## Roles
 
 | Role | Access |
-|---|---|
+| --- | --- |
 | `user` | Shop, cart, checkout, orders, profile, loyalty, portal |
 | `facilitator` | All user access + `/admin/book-club` (sessions, attendance, hub content) |
 | `admin` | Full access including products, orders, users, analytics, book club |
@@ -82,7 +82,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Auth — `/api/auth`
 
 | Method | Path | Auth | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/register` | public | Register with optional book club enrolment |
 | POST | `/login` | public | Returns JWT + loyalty fields |
 | POST | `/verify` | public | Email verification (6-digit code) |
@@ -96,7 +96,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Products — `/api/products`
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/` | public |
 | POST | `/` | admin |
 | PUT | `/:id` | admin |
@@ -105,7 +105,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Orders — `/api/orders`
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | POST | `/` | user |
 | GET | `/my` | user |
 | GET | `/` | admin |
@@ -114,7 +114,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Loyalty — `/api/loyalty`
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/balance` | user |
 | GET | `/transactions` | user |
 | POST | `/redeem` | user |
@@ -122,7 +122,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Portal — `/api/portal`
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/hub-content/:group` | public |
 | GET | `/my-child` | user |
 | GET | `/upcoming-session` | user |
@@ -136,7 +136,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Admin — `/api/admin`
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/stats` | admin |
 | GET | `/advanced-stats` | admin |
 | GET/DELETE | `/users` | admin |
@@ -145,7 +145,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 ### Other
 
 | Method | Path | Auth |
-|---|---|---|
+| --- | --- | --- |
 | POST | `/api/contact` | public |
 | POST | `/api/book-club/register` | public |
 | POST | `/api/paystack/initialize` | user |
