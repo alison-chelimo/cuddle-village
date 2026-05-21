@@ -65,8 +65,12 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
-      default: "pending", // Pending → Paid → Delivered
+      default: "pending",
     },
+
+    pointsEarned:   { type: Number, default: 0 },
+    pointsRedeemed: { type: Number, default: 0 },
+    pointsDiscount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

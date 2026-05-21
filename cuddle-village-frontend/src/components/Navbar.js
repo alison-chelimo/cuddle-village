@@ -1,12 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
+import { useLoyalty } from "../context/LoyaltyContext";
 import { FaShoppingCart, FaSearch, FaBars, FaTimes } from "react-icons/fa";
 import { isAuthenticated, logout } from "../utils/auth";
 import logo from "../assets/logo1.JPG";
 
+const TIER_COLORS = { Bronze: "#b8860b", Silver: "#666", Gold: "#d4a017", Platinum: "#6b5fc7" };
+
 function Navbar() {
   const { cart } = useContext(CartContext);
+  const { points, tier } = useLoyalty();
   const location = useLocation();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -248,7 +252,12 @@ function Navbar() {
             <Link to="/orders" className={`nav-link ${isActive("/orders") ? "active" : ""}`}>Orders</Link>
           )}
           {isAuthenticated() && (
-            <Link to="/profile" className={`nav-link ${isActive("/profile") ? "active" : ""}`}>Profile</Link>
+            <Link to="/profile" className={`nav-link ${isActive("/profile") ? "active" : ""}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              Profile
+              <span style={{ fontSize: 11, fontWeight: 800, color: TIER_COLORS[tier] || "#8b7fd4", background: "#f5f3ff", padding: "2px 8px", borderRadius: 20, border: "1.5px solid #e8e4f8" }}>
+                ★ {points} · {tier}
+              </span>
+            </Link>
           )}
           <div className="nav-divider" />
           <Link to="/cart" className="nav-cart">
