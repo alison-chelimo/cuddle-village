@@ -28,6 +28,7 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/contact", require("./routes/contactRoute"));
 app.use("/api/book-club", require("./routes/bookClubRoute"));
 app.use("/api/loyalty",   require("./routes/loyaltyRoutes"));
+app.use("/api/portal",    require("./routes/portalRoutes"));
 app.use("/api/paystack",  require("./routes/paystackRoute"));
 
 mongoose.connect(process.env.MONGO_URI)

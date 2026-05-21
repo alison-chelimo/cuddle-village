@@ -1,13 +1,16 @@
+import { useState, useEffect } from "react";
 import readersImg from "../assets/readers.png";
+import API from "../services/api";
+import { isAuthenticated } from "../utils/auth";
 
-const weeklyBooks = [
+const DEFAULT_BOOKS = [
   { title: "The Very Hungry Caterpillar", author: "Eric Carle", emoji: "🐛", tag: "Nature & Growth" },
   { title: "Where the Wild Things Are", author: "Maurice Sendak", emoji: "🌿", tag: "Imagination" },
   { title: "Goodnight Moon", author: "Margaret Wise Brown", emoji: "🌙", tag: "Bedtime" },
   { title: "The Snowy Day", author: "Ezra Jack Keats", emoji: "❄️", tag: "Seasons" },
 ];
 
-const activities = [
+const DEFAULT_ACTIVITIES = [
   { icon: "📖", title: "Picture Book Time", desc: "Guided reading with vibrant illustrations to spark curiosity and vocabulary." },
   { icon: "🎨", title: "Creative Craft", desc: "Hands-on art projects inspired by the week's featured book." },
   { icon: "👂", title: "Listening Circles", desc: "Short audio stories that build focus and comprehension skills." },
@@ -16,7 +19,7 @@ const activities = [
   { icon: "🎵", title: "Rhyme & Song", desc: "Fun nursery rhymes and songs that make language learning joyful." },
 ];
 
-const milestones = [
+const DEFAULT_MILESTONES = [
   { label: "Week 1–2", title: "Getting Comfortable", desc: "Settling in, learning names, and discovering our favourite story spots." },
   { label: "Week 3–4", title: "Listening & Looking", desc: "Building attention through picture exploration and read-alouds." },
   { label: "Week 5–6", title: "Talking About Stories", desc: "Sharing thoughts on characters and what happens next." },
@@ -24,6 +27,38 @@ const milestones = [
 ];
 
 export default function EarlyLearnersHub() {
+  const [books,      setBooks]      = useState(DEFAULT_BOOKS);
+  const [activities, setActivities] = useState(DEFAULT_ACTIVITIES);
+  const [milestones, setMilestones] = useState(DEFAULT_MILESTONES);
+  const [childData,  setChildData]  = useState(null);
+  const [upcoming,   setUpcoming]   = useState(null);
+
+  const storedUser  = (() => { try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; } })();
+  const isEnrolled  = isAuthenticated() && storedUser?.bookClub?.group === "early-learners";
+
+  useEffect(() => {
+    API.get("/portal/hub-content/early-learners").then(res => {
+      const data = res.data;
+      if (!data.length) return; // keep defaults if DB is empty
+      const b = data.filter(i => i.contentType === "book");
+      const a = data.filter(i => i.contentType === "activity");
+      const m = data.filter(i => i.contentType === "milestone");
+      if (b.length) setBooks(b.map(i => ({ title: i.title, author: i.author, emoji: i.emoji || "📚", tag: i.tag })));
+      if (a.length) setActivities(a.map(i => ({ icon: i.emoji || "📖", title: i.title, desc: i.description })));
+      if (m.length) setMilestones(m.map(i => ({ label: i.weekLabel, title: i.title, desc: i.description })));
+    }).catch(() => {});
+
+    if (isEnrolled) {
+      Promise.all([
+        API.get("/portal/my-child"),
+        API.get("/portal/upcoming-session"),
+      ]).then(([cRes, uRes]) => {
+        setChildData(cRes.data);
+        setUpcoming(uRes.data);
+      }).catch(() => {});
+    }
+  }, [isEnrolled]);
+
   return (
     <>
       <style>{`
@@ -305,6 +340,24 @@ export default function EarlyLearnersHub() {
           .el-activities { grid-template-columns: 1fr; }
           .el-books { grid-template-columns: 1fr 1fr; }
         }
+
+        /* ── Child Progress Section ─────────────────────────────────── */
+        .el-progress { background: #fff; border-radius: 24px; padding: 36px; margin: 0 60px 60px; box-shadow: 0 4px 24px rgba(175,167,231,0.12); border: 2px solid #f0eeff; }
+        .el-progress-title { font-size: 22px; font-weight: 900; color: #2d2640; margin: 0 0 6px; }
+        .el-progress-sub   { font-size: 14px; color: #aaa; font-weight: 600; margin: 0 0 24px; }
+        .el-progress-grid  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .el-progress-card  { background: #faf9fe; border-radius: 16px; padding: 20px; border: 1.5px solid #f0eeff; }
+        .el-progress-card-title { font-size: 11px; font-weight: 800; color: #afa7e7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .el-progress-num   { font-size: 32px; font-weight: 900; color: #2d2640; }
+        .el-upcoming-date  { font-size: 14px; font-weight: 900; color: #2d2640; margin-bottom: 4px; }
+        .el-upcoming-book  { font-size: 13px; color: #888; font-weight: 600; }
+        .el-skill-pill     { display: inline-block; background: #f0eeff; color: #8b7fd4; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; margin: 3px 4px 3px 0; }
+        .el-progress-link  { display: inline-block; margin-top: 20px; padding: 11px 24px; background: linear-gradient(135deg, #C3B1E1, #afa7e7); color: #fff; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; transition: opacity 0.2s; }
+        .el-progress-link:hover { opacity: 0.88; }
+        @media (max-width: 900px) {
+          .el-progress { margin: 0 20px 40px; padding: 24px; }
+          .el-progress-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       <div className="el-page">
@@ -429,6 +482,62 @@ export default function EarlyLearnersHub() {
             ))}
           </div>
         </div>
+
+        {/* ── Child Progress (enrolled parents only) ─────────────────── */}
+        {isEnrolled && childData && (
+          <div className="el-progress">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+              <span style={{ fontSize: 28 }}>👶</span>
+              <div>
+                <div className="el-progress-title">
+                  {childData.childName ? `${childData.childName}'s Progress` : "My Child's Progress"}
+                </div>
+                <div className="el-progress-sub">Early Learners · {childData.schedule || "Book Club"}</div>
+              </div>
+            </div>
+
+            <div className="el-progress-grid">
+              <div className="el-progress-card">
+                <div className="el-progress-card-title">📅 Sessions Attended</div>
+                <div className="el-progress-num">{childData.sessionsAttended?.length || 0}</div>
+              </div>
+
+              <div className="el-progress-card">
+                <div className="el-progress-card-title">📚 Books Read</div>
+                <div className="el-progress-num">{childData.booksRead?.length || 0}</div>
+                {childData.booksRead?.slice(0, 2).map(b => (
+                  <div key={b.title} style={{ fontSize: 12, color: "#888", fontWeight: 600, marginTop: 4 }}>{b.title}</div>
+                ))}
+              </div>
+
+              <div className="el-progress-card">
+                <div className="el-progress-card-title">🌟 Skills Achieved</div>
+                <div className="el-progress-num">{childData.skills?.length || 0}</div>
+                {childData.skills?.slice(0, 3).map(s => (
+                  <span key={s.name} className="el-skill-pill">{s.name}</span>
+                ))}
+              </div>
+            </div>
+
+            {upcoming && (
+              <div style={{ marginTop: 20, background: "#f0eeff", borderRadius: 14, padding: "16px 20px" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#afa7e7", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>📅 Next Session</div>
+                <div className="el-upcoming-date">{new Date(upcoming.date).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}</div>
+                {upcoming.bookTitle && <div className="el-upcoming-book">📖 {upcoming.bookTitle}{upcoming.bookAuthor ? ` by ${upcoming.bookAuthor}` : ""}</div>}
+                {upcoming.title && <div className="el-upcoming-book" style={{ marginTop: 2 }}>🗒 {upcoming.title}</div>}
+              </div>
+            )}
+
+            {childData.notes && (
+              <div style={{ marginTop: 16, background: "#fffbeb", borderRadius: 14, padding: "14px 18px", border: "1.5px solid #f7c94855" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#b8860b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>💬 Facilitator Note</div>
+                <div style={{ fontSize: 14, color: "#555", fontWeight: 600 }}>{childData.notes}</div>
+              </div>
+            )}
+
+            <a href="/portal/my-child" className="el-progress-link">View Full Progress →</a>
+          </div>
+        )}
 
         {/* ── CTA ────────────────────────────────────────────────────── */}
         <div className="el-cta">
