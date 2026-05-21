@@ -84,4 +84,69 @@ function resetPasswordEmail(code) {
   return wrap("Password Reset", body);
 }
 
-module.exports = { verifyEmail, resetPasswordEmail };
+// ── Book Club confirmation email ──────────────────────────────────────────────
+function bookClubConfirmationEmail(child, parent, program) {
+  const GROUP_LABELS = {
+    "early-learners":  { label: "Early Learners", age: "Ages 4–5", color: "#b8860b", bg: "#fffbeb" },
+    "growing-readers": { label: "Growing Readers", age: "Ages 6–8", color: "#1a6fa8", bg: "#eff8ff" },
+  };
+  const SCHEDULE_TIMES = {
+    saturday: "Saturday · 10:00 – 11:00 AM",
+    sunday:   "Sunday · 11:00 AM – 12:00 PM",
+  };
+  const PLAN_LABELS = {
+    "per-session": "Per Session (KSh 800)",
+    "monthly":     "Monthly (KSh 3,000)",
+    "premium":     "Premium Package",
+  };
+
+  const grp      = GROUP_LABELS[program.group] || { label: program.group, age: "", color: "#8b7fd4", bg: "#f0eeff" };
+  const schedule = SCHEDULE_TIMES[program.schedule] || program.schedule;
+  const plan     = PLAN_LABELS[program.plan]         || program.plan;
+
+  function detailRow(icon, label, value) {
+    return `<tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #f0eeff;font-size:13px;color:#888;font-weight:600;width:36px;">${icon}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #f0eeff;font-size:13px;color:#888;font-weight:600;">${label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #f0eeff;font-size:13px;color:#2d2640;font-weight:800;">${value}</td>
+    </tr>`;
+  }
+
+  const body = `
+    <h2 style="margin:0 0 6px;font-size:22px;font-weight:800;color:#2d2640;">You're enrolled! 🎉</h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.6;">
+      Hi <strong>${parent.name}</strong>, <strong>${child.name}</strong> has been successfully registered
+      for The Cuddle Village Book Club.
+    </p>
+
+    <!-- Group badge -->
+    <div style="display:inline-block;margin-bottom:24px;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:800;background:${grp.bg};color:${grp.color};">
+      ${grp.label} · ${grp.age}
+    </div>
+
+    <!-- Details card -->
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f5f3ff;border-radius:12px;overflow:hidden;margin-bottom:28px;">
+      ${detailRow("👤", "Child",    child.name)}
+      ${detailRow("📅", "Schedule", schedule)}
+      ${detailRow("📋", "Plan",     plan)}
+    </table>
+
+    <!-- What to expect -->
+    <h3 style="margin:0 0 12px;font-size:15px;font-weight:800;color:#2d2640;">What to expect next</h3>
+    <ul style="margin:0 0 24px;padding-left:20px;color:#666;font-size:14px;line-height:1.8;">
+      <li>We'll be in touch with your first session date and venue details.</li>
+      <li>Please arrive 10 minutes early for the first session.</li>
+      <li>Bring a water bottle and any snacks your child may need.</li>
+      <li>Sessions last 60 minutes — parents are welcome to stay or return at pick-up.</li>
+    </ul>
+
+    <p style="margin:0;font-size:13px;color:#999;line-height:1.6;">
+      Questions? Reply to this email or contact us at
+      <a href="mailto:${process.env.EMAIL_USER}" style="color:#afa7e7;font-weight:700;">${process.env.EMAIL_USER}</a>.
+    </p>`;
+
+  return wrap("Book Club Confirmed ✓", body);
+}
+
+module.exports = { verifyEmail, resetPasswordEmail, bookClubConfirmationEmail };
