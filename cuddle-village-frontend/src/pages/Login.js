@@ -39,6 +39,10 @@ function Login() {
         navigate("/admin/admin-dashboard");
       }
 
+      else if (user.role === "facilitator") {
+        navigate("/facilitator/dashboard");
+      }
+
       // Book club groups
       else if (group === "early-learners") {
         navigate("/early-learners");
