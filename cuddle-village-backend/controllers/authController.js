@@ -3,6 +3,8 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
+const { resetPasswordEmail } = require("../utils/emailTemplates");
+const { createTransporter } = require("../utils/sendEmail");
  
 exports.register = async (req, res) => {
   try {
@@ -16,7 +18,7 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = crypto.randomInt(100000, 1000000).toString();
 
     const getGroup = (age) => {
     const n = parseInt(age, 10);
@@ -148,7 +150,7 @@ exports.resendCode = async (req, res) => {
   const user = await User.findOne({ email: email.toLowerCase() });
   if(!user) return res.status(400).json({message: "User not found" });
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   user.verificationCode = code;
   await user.save();
 
@@ -157,64 +159,54 @@ exports.resendCode = async (req, res) => {
   res.json({ message: "New code sent" });
 };
 
-// FORGOT PASSWORD — sends a reset link to the user's email
+// FORGOT PASSWORD — emails a 6-digit OTP (same pattern as email verification)
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email: email.toLowerCase() });
 
     // Always respond 200 to avoid leaking whether an account exists
-    if (!user) return res.json({ message: "If that email is registered, a reset link has been sent." });
+    if (!user) return res.json({ message: "If that email is registered, a reset code has been sent." });
 
-    const plainToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken   = crypto.createHash("sha256").update(plainToken).digest("hex");
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    const code = crypto.randomInt(100000, 1000000).toString();
+    user.resetPasswordToken   = code;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${plainToken}`;
-
-    await user.save();
-
-    const transporter = require("nodemailer").createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-
+    const transporter = createTransporter();
     await transporter.sendMail({
       from: `"The Cuddle Village" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: "Reset your password",
-      html: `
-        <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:30px;border-radius:12px;border:1px solid #eee;">
-          <h2 style="color:#afa7e7;">The Cuddle Village 🧸</h2>
-          <p>Click the button below to reset your password. This link expires in <strong>1 hour</strong>.</p>
-          <a href="${resetUrl}" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#afa7e7;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">
-            Reset Password
-          </a>
-          <p style="color:#aaa;font-size:12px;margin-top:20px;">If you didn't request this, ignore this email.</p>
-        </div>`,
+      subject: "Your password reset code — The Cuddle Village",
+      text: `Your password reset code is: ${code}. It expires in 10 minutes.`,
+      html: resetPasswordEmail(code),
     });
 
-    res.json({ message: "If that email is registered, a reset link has been sent." });
+    res.json({ message: "If that email is registered, a reset code has been sent." });
   } catch (err) {
     console.error("Forgot password error:", err);
     res.status(500).json({ message: "Failed to send reset email" });
   }
 };
 
-// RESET PASSWORD — validates token and updates the password
+// RESET PASSWORD — accepts { email, code, password } in request body
 exports.resetPassword = async (req, res) => {
   try {
-    const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
+    const { email, code, password } = req.body;
+
+    if (!email || !code || !password) {
+      return res.status(400).json({ message: "Email, code, and new password are required." });
+    }
 
     const user = await User.findOne({
-      resetPasswordToken:   hashedToken,
+      email:                email.toLowerCase(),
+      resetPasswordToken:   code.trim(),
       resetPasswordExpires: { $gt: Date.now() },
     });
 
-    if (!user) return res.status(400).json({ message: "Reset link is invalid or has expired." });
+    if (!user) return res.status(400).json({ message: "Code is invalid or has expired." });
 
-    user.password             = await bcrypt.hash(req.body.password, 10);
+    user.password             = await bcrypt.hash(password, 10);
     user.resetPasswordToken   = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
