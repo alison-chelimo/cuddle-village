@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
@@ -166,7 +167,10 @@ exports.updateUserRole = async (req, res) => {
     const { role } = req.body;
     const allowed = ["user", "admin", "facilitator"];
     if (!allowed.includes(role)) return res.status(400).json({ message: "Invalid role" });
-    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-password");
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: "Invalid user ID" });
+    const safeId = new mongoose.Types.ObjectId(req.params.id);
+    const safeRole = role === "admin" ? "admin" : role === "facilitator" ? "facilitator" : "user";
+    const user = await User.findByIdAndUpdate(safeId, { role: safeRole }, { new: true }).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {
