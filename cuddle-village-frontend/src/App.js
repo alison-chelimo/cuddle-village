@@ -20,6 +20,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AddProduct from "./pages/admin/AddProduct";
 import EditProduct from "./pages/admin/EditProduct";
 import Users from "./pages/admin/Users";
+import PromoCodes from "./pages/admin/PromoCodes";
 import OrderSuccess from "./pages/OrderSuccess";
 import FAQ from "./pages/FAQ";
 import Terms from "./pages/Terms";
@@ -83,6 +84,7 @@ function Layout() {
         <Route path="/admin/products/edit/:id" element={<AdminRoute><EditProduct /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
         <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+        <Route path="/admin/promo-codes" element={<AdminRoute><PromoCodes /></AdminRoute>} />
         <Route path="/admin/book-club" element={<FacilitatorRoute><BookClubAdmin /></FacilitatorRoute>} />
 
         {/* Facilitator portal — own FacilitatorLayout, no Navbar/Footer */}
