@@ -16,7 +16,7 @@ const TIER_CONFIG = {
 export default function Profile() {
   const navigate = useNavigate();
   const { toasts, toast } = useToast();
-  const { points, lifetimePoints, tier, nextTier } = useLoyalty();
+  const { points, lifetimePoints, tier, nextTier, refresh: refreshLoyalty } = useLoyalty();
   const [transactions, setTransactions] = useState([]);
 
   const [profile, setProfile]   = useState(null);
@@ -42,6 +42,7 @@ export default function Profile() {
     Promise.all([
       API.get("/auth/profile"),
       API.get("/loyalty/transactions"),
+      refreshLoyalty(),
     ])
       .then(([profileRes, txnRes]) => {
         setProfile(profileRes.data);
@@ -50,7 +51,7 @@ export default function Profile() {
       })
       .catch(() => navigate("/login"))
       .finally(() => setLoading(false));
-  }, [navigate]);
+  }, [navigate, refreshLoyalty]);
 
   const handleSave = async (e) => {
     e.preventDefault();
