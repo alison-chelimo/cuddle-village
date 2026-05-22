@@ -1,5 +1,7 @@
 const router = require("express").Router();
 const User = require("../models/User");
+const { createTransporter } = require("../utils/sendEmail");
+const { bookClubConfirmationEmail } = require("../utils/emailTemplates");
 
 // POST /api/book-club/register
 // Finds the parent's account by email and saves the child + program details.
@@ -38,6 +40,15 @@ router.post("/register", async (req, res) => {
     }
 
     await user.save();
+
+    // Send confirmation email — fire-and-forget so a mail failure never blocks the response
+    createTransporter().sendMail({
+      from: `"The Cuddle Village" <${process.env.EMAIL_USER}>`,
+      to:   parent.email,
+      subject: `Book Club registration confirmed — ${child.name} is enrolled!`,
+      text:  `Hi ${parent.name}, ${child.name} has been registered for the ${program.group} group. We'll be in touch with session details soon.`,
+      html:  bookClubConfirmationEmail(child, parent, program),
+    }).catch(err => console.error("Book club confirmation email failed:", err.message));
 
     res.json({ message: "Registration successful", group: program.group });
   } catch (err) {

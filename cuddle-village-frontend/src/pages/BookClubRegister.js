@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import API from "../services/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import useToast from "../hooks/useToast";
+import Toast from "../components/Toast";
 
 /**
  * BookClubRegister.jsx
@@ -15,15 +17,18 @@ import { Link } from "react-router-dom";
  */
 
 const PLANS = [
-  { value: "per-session", price: "KSh 800",   label: "Per Session" },
-  { value: "monthly",     price: "KSh 3,000", label: "Monthly" },
-  { value: "premium",     price: "Custom",    label: "Premium Package" },
+  { value: "per-session", price: "KSh 800",   label: "Per Session",     desc: "Pay as you go. No commitment.",      popular: false },
+  { value: "monthly",     price: "KSh 3,000", label: "Monthly",         desc: "4 sessions/month. Best value.",      popular: true  },
+  { value: "premium",     price: "Custom",    label: "Premium Package", desc: "Tailored plan — contact us.",        popular: false },
 ];
 
 function BookClubRegister() {
+  const navigate = useNavigate();
+  const { toasts, toast } = useToast();
   const [step, setStep] = useState(1); // 1 = child, 2 = parent, 3 = program
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [hasAllergies, setHasAllergies] = useState(false);
 
   // Child info (Step 1)
   const [child, setChild] = useState({
@@ -71,19 +76,19 @@ function BookClubRegister() {
     try {
       await API.post("/book-club/register", { child, parent, program: { ...program, group } });
       setSubmitted(true);
-      // Redirect to the appropriate group hub after a moment
-      setTimeout(() => {
-        window.location.href = `/${group}`;
-      }, 3000);
     } catch (err) {
-      alert(err.response?.data?.message || "Registration failed. Please try again.");
+      toast.error(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const SCHEDULE_TIMES = { saturday: "10:00 – 11:00 AM", sunday: "11:00 AM – 12:00 PM" };
+  const PLAN_LABEL     = { "per-session": "Per Session", monthly: "Monthly", premium: "Premium Package" };
+
   return (
     <>
+      <Toast toasts={toasts} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
@@ -252,8 +257,17 @@ function BookClubRegister() {
         }
         .plan-card:hover   { border-color: #afa7e7; background: #f5f2ff; }
         .plan-card.selected { border-color: #afa7e7; background: #f0eeff; }
-        .plan-price { font-size: 14px; font-weight: 900; color: #2d2640; }
-        .plan-label { font-size: 10px; font-weight: 700; color: #aaa; margin-top: 3px; }
+        .plan-price  { font-size: 14px; font-weight: 900; color: #2d2640; }
+        .plan-label  { font-size: 10px; font-weight: 700; color: #aaa; margin-top: 3px; }
+        .plan-desc   { font-size: 10px; font-weight: 600; color: #bbb; margin-top: 5px; line-height: 1.3; }
+        .plan-popular { display: inline-block; background: #afa7e7; color: #fff; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 20px; margin-bottom: 5px; letter-spacing: 0.3px; }
+
+        /* Summary strip */
+        .summary-strip { background: #faf9fe; border: 1.5px solid #f0eeff; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+        .summary-row   { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+        .summary-row + .summary-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid #f0eeff; }
+        .summary-val   { font-weight: 800; color: #2d2640; }
+        .summary-edit  { font-size: 11px; font-weight: 800; color: #afa7e7; background: none; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; padding: 0; }
 
         /* Consent */
         .consent-box {
@@ -372,15 +386,48 @@ function BookClubRegister() {
               /* ── Success screen ──────────────────────────────────── */
               <div className="success-screen">
                 <div className="success-icon">🎉</div>
-                <div className="success-title">You're enrolled!</div>
+                <div className="success-title">{child.name} is enrolled!</div>
+                {gi && <div className={`success-chip age-chip ${gi.cls}`}>{gi.label}</div>}
                 <div className="success-sub">
-                  {child.name} has been registered for the Book Club.<br />
-                  You'll receive a confirmation email shortly.
+                  A confirmation email has been sent to <strong>{parent.email}</strong>.
                 </div>
-                {gi && (
-                  <div className={`success-chip age-chip ${gi.cls}`}>{gi.label}</div>
-                )}
-                <div className="redirecting">Taking you to your group hub…</div>
+
+                {/* Enrolment summary */}
+                <div style={{ background: "#faf9fe", border: "1.5px solid #f0eeff", borderRadius: 14, padding: "16px 18px", marginBottom: 24, textAlign: "left" }}>
+                  {program.schedule && (
+                    <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 16 }}>📅</span>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#aaa", fontWeight: 700 }}>Schedule</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#2d2640" }}>
+                          {program.schedule.charAt(0).toUpperCase() + program.schedule.slice(1)} · {SCHEDULE_TIMES[program.schedule]}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {program.plan && (
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <span style={{ fontSize: 16 }}>📋</span>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#aaa", fontWeight: 700 }}>Plan</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#2d2640" }}>{PLAN_LABEL[program.plan] || program.plan}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => navigate(group === "early-learners" ? "/early-learners" : "/growing-readers")}
+                    style={{ flex: 2, padding: "13px", background: "linear-gradient(135deg,#C3B1E1,#afa7e7)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "Nunito, sans-serif" }}>
+                    Go to Group Hub →
+                  </button>
+                  <button
+                    onClick={() => navigate("/profile")}
+                    style={{ flex: 1, padding: "13px", background: "#f0eeff", color: "#8b7fd4", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "Nunito, sans-serif" }}>
+                    Profile
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -438,15 +485,18 @@ function BookClubRegister() {
                       <div className="radio-row">
                         <label className="radio-opt">
                           <input type="radio" name="hasAllergies" value="no" defaultChecked
-                            onChange={() => setChild({ ...child, allergies: "" })} />
+                            onChange={() => { setHasAllergies(false); setChild({ ...child, allergies: "" }); }} />
                           No allergies
                         </label>
                         <label className="radio-opt">
-                          <input type="radio" name="hasAllergies" value="yes" />
+                          <input type="radio" name="hasAllergies" value="yes"
+                            onChange={() => setHasAllergies(true)} />
                           Yes, specify below
                         </label>
                       </div>
-                      <input name="allergies" placeholder="e.g. Peanuts, Dairy…" className="form-input" value={child.allergies} onChange={handleChild} />
+                      {hasAllergies && (
+                        <input name="allergies" placeholder="e.g. Peanuts, Dairy…" className="form-input" value={child.allergies} onChange={handleChild} />
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -509,13 +559,27 @@ function BookClubRegister() {
                     <h2>Program Selection</h2>
                     <p className="subtitle">Choose a schedule and membership plan</p>
 
+                    {/* Summary strip */}
+                    <div className="summary-strip">
+                      <div className="summary-row">
+                        <span style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>Child</span>
+                        <span className="summary-val">{child.name}, age {child.age} {gi ? `· ${gi.label.split("·")[1]?.trim()}` : ""}</span>
+                        <button className="summary-edit" onClick={() => setStep(1)}>Edit</button>
+                      </div>
+                      <div className="summary-row">
+                        <span style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>Parent</span>
+                        <span className="summary-val" style={{ flex: 1, margin: "0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{parent.name} · {parent.email}</span>
+                        <button className="summary-edit" onClick={() => setStep(2)}>Edit</button>
+                      </div>
+                    </div>
+
                     {gi && <div className={`age-chip ${gi.cls}`} style={{ marginBottom: 16 }}>{gi.label}</div>}
 
                     <label className="form-label" style={{ marginBottom: 8 }}>Preferred Schedule</label>
                     <div className="schedule-cards" style={{ marginBottom: 20 }}>
                       {[
-                        { value: "saturday", day: "Saturday", sub: "Morning sessions" },
-                        { value: "sunday",   day: "Sunday",   sub: "Morning sessions" },
+                        { value: "saturday", day: "Saturday", sub: "10:00 – 11:00 AM" },
+                        { value: "sunday",   day: "Sunday",   sub: "11:00 AM – 12:00 PM" },
                       ].map((s) => (
                         <div
                           key={s.value}
@@ -536,8 +600,10 @@ function BookClubRegister() {
                           className={`plan-card ${program.plan === p.value ? "selected" : ""}`}
                           onClick={() => setProgram({ ...program, plan: p.value })}
                         >
+                          {p.popular && <div className="plan-popular">Most Popular</div>}
                           <div className="plan-price">{p.price}</div>
                           <div className="plan-label">{p.label}</div>
+                          <div className="plan-desc">{p.desc}</div>
                         </div>
                       ))}
                     </div>
