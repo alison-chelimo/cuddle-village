@@ -67,21 +67,36 @@ exports.verifyPayment = async (req, res) => {
     );
 
     const data = response.data.data;
-    const success = data.status === "success";
+    let success = data.status === "success";
+    const orderId = data.metadata?.orderId;
 
-    if (success) {
-      const orderId = data.metadata?.orderId;
+    if (success && orderId) {
       console.log("✅ Payment verified for order:", orderId, "ref:", reference);
+      const order = await Order.findById(orderId);
+      if (order && order.paymentStatus !== "paid") {
+        order.paymentStatus    = "paid";
+        order.paymentReference = reference;
+        order.paidAt           = new Date();
+        await order.save();
+        await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
+      }
+    }
 
-      if (orderId) {
-        const order = await Order.findById(orderId);
-        if (order) {
-          order.paymentStatus    = "paid";
-          order.paymentReference = reference;
-          order.paidAt           = new Date();
-          await order.save();
-          await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
-        }
+    // Fallback: Paystack can return "pending" for a few seconds after redirect.
+    // If the webhook already processed the payment, trust the DB.
+    if (!success && orderId) {
+      const order = await Order.findById(orderId);
+      if (order?.paymentStatus === "paid") {
+        console.log("✅ DB fallback: order already paid by webhook, ref:", reference);
+        return res.json({
+          success: true, status: "success",
+          reference: data.reference,
+          amount: data.amount / 100,
+          currency: data.currency,
+          channel: data.channel,
+          orderId,
+          paidAt: order.paidAt,
+        });
       }
     }
 
@@ -89,10 +104,10 @@ exports.verifyPayment = async (req, res) => {
       success,
       status: data.status,
       reference: data.reference,
-      amount: data.amount / 100, // convert back to KES
+      amount: data.amount / 100,
       currency: data.currency,
       channel: data.channel,
-      orderId: data.metadata?.orderId,
+      orderId,
       paidAt: data.paid_at,
     });
   } catch (err) {
