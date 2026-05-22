@@ -136,3 +136,113 @@ exports.deleteHubContent = async (req, res) => {
   await HubContent.findByIdAndUpdate(req.params.id, { isActive: false });
   res.json({ message: "Deactivated" });
 };
+
+// ── New facilitator endpoints ─────────────────────────────────────────────────
+
+const ProgressNote = require("../models/ProgressNote");
+const Announcement = require("../models/Announcement");
+
+exports.getChildById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select("name email phone bookClub createdAt")
+      .populate("bookClub.sessionsAttended", "date title bookTitle group");
+    if (!user) return res.status(404).json({ message: "Child not found" });
+    res.json(user);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.getChildAttendance = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select("name bookClub.sessionsAttended")
+      .populate("bookClub.sessionsAttended", "date title bookTitle group");
+    if (!user) return res.status(404).json({ message: "Child not found" });
+    res.json(user.bookClub?.sessionsAttended || []);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.addProgressNote = async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Note content is required" });
+    const note = await ProgressNote.create({ child: req.params.id, content: content.trim(), createdBy: req.user._id });
+    await note.populate("createdBy", "name");
+    res.status(201).json(note);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.getProgressNotes = async (req, res) => {
+  try {
+    const notes = await ProgressNote.find({ child: req.params.id })
+      .sort({ createdAt: -1 })
+      .populate("createdBy", "name");
+    res.json(notes);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.getSessionById = async (req, res) => {
+  try {
+    const session = await LearningSession.findById(req.params.id)
+      .populate("attendees", "name email bookClub");
+    if (!session) return res.status(404).json({ message: "Session not found" });
+    res.json(session);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.bulkAttendance = async (req, res) => {
+  try {
+    const { attendees } = req.body; // [{ userId, attended }]
+    const session = await LearningSession.findById(req.params.id);
+    if (!session) return res.status(404).json({ message: "Session not found" });
+
+    await Promise.all(attendees.map(async ({ userId, attended }) => {
+      const user = await User.findById(userId);
+      if (!user) return;
+      const sid = session._id.toString();
+      const uid = userId.toString();
+      if (attended) {
+        if (!session.attendees.map(String).includes(uid)) session.attendees.push(userId);
+        if (!user.bookClub.sessionsAttended.map(String).includes(sid)) {
+          user.bookClub.sessionsAttended.push(session._id);
+        }
+      } else {
+        session.attendees = session.attendees.filter(a => a.toString() !== uid);
+        user.bookClub.sessionsAttended = user.bookClub.sessionsAttended.filter(
+          s => s.toString() !== sid
+        );
+      }
+      await user.save();
+    }));
+    await session.save();
+    res.json({ message: "Attendance saved" });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.createAnnouncement = async (req, res) => {
+  try {
+    const { title, body, targetGroup } = req.body;
+    if (!title || !body) return res.status(400).json({ message: "Title and body are required" });
+    const ann = await Announcement.create({
+      title, body, targetGroup: targetGroup || "all", createdBy: req.user._id,
+    });
+    res.status(201).json(ann);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.getAnnouncements = async (req, res) => {
+  try {
+    const anns = await Announcement.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    res.json(anns);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+exports.updateAnnouncementStatus = async (req, res) => {
+  try {
+    const ann = await Announcement.findByIdAndUpdate(
+      req.params.id, { status: req.body.status }, { new: true }
+    );
+    if (!ann) return res.status(404).json({ message: "Not found" });
+    res.json(ann);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};

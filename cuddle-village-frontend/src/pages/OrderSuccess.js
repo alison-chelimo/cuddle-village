@@ -14,15 +14,37 @@ function OrderSuccess() {
 
   useEffect(() => {
     if (!reference) { setStatus("failed"); return; }
-    API.get(`/paystack/verify/${reference}`)
-      .then(({ data }) => {
-        setStatus(data.success ? "paid" : "failed");
-        if (data.success) {
-          refreshLoyalty();
-          if (data.amount) setEarned(Math.floor(data.amount / 10));
-        }
-      })
-      .catch(() => setStatus("failed"));
+
+    let attempts = 0;
+    const MAX    = 4;
+    const DELAY  = 2500; // ms between retries
+
+    const verify = () => {
+      attempts++;
+      API.get(`/paystack/verify/${reference}`)
+        .then(({ data }) => {
+          if (data.success) {
+            setStatus("paid");
+            refreshLoyalty();
+            if (data.amount) setEarned(Math.floor(data.amount / 10));
+          } else if (data.status === "pending" && attempts < MAX) {
+            // Paystack hasn't fully confirmed yet — retry
+            setTimeout(verify, DELAY);
+          } else {
+            setStatus("failed");
+          }
+        })
+        .catch(() => {
+          // Network / server error — retry before giving up
+          if (attempts < MAX) {
+            setTimeout(verify, DELAY);
+          } else {
+            setStatus("failed");
+          }
+        });
+    };
+
+    verify();
   }, [reference, refreshLoyalty]);
 
   // Timeout: if still verifying after 12s, show timeout message
