@@ -11,7 +11,6 @@ const EMPTY_FORM = { group: "early-learners", title: "", author: "", tag: "curre
 
 export default function Books() {
   const [items,    setItems]   = useState([]);
-  const [loading,  setLoading] = useState(true);
   const [form,     setForm]    = useState(EMPTY_FORM);
   const [showForm, setShow]    = useState(false);
   const [saving,   setSaving]  = useState(false);
@@ -19,7 +18,7 @@ export default function Books() {
   const load = () =>
     API.get("/portal/admin/hub-content")
       .then(r => setItems((r.data || []).filter(h => h.contentType === "book")))
-      .finally(() => setLoading(false));
+      .catch(() => {});
 
   useEffect(() => { load(); }, []);
 

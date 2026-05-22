@@ -37,8 +37,6 @@ export default function FacilitatorDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const earlyCount   = children.filter(c => c.bookClub?.group === "early-learners").length;
-  const growingCount = children.filter(c => c.bookClub?.group === "growing-readers").length;
   const sessionsThisMonth = sessions.filter(s => new Date(s.date) >= monthStart).length;
   const pastSessions = sessions.filter(s => new Date(s.date) < now);
   const avgAttendance = pastSessions.length
