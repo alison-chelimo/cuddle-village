@@ -122,7 +122,9 @@ export default function Profile() {
           background: linear-gradient(135deg, #C3B1E1, #afa7e7);
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-size: 30px; margin-bottom: 16px;
+          font-size: 26px; font-weight: 900; color: #fff;
+          letter-spacing: 1px;
+          margin-bottom: 16px;
           box-shadow: 0 4px 16px rgba(175,167,231,0.3);
         }
         .profile-card {
@@ -205,7 +207,11 @@ export default function Profile() {
         <div className="profile-inner">
 
           <div className="profile-header">
-            <div className="profile-avatar">👤</div>
+            <div className="profile-avatar">
+              {profile?.name
+                ? profile.name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join("")
+                : "👤"}
+            </div>
             <h1>My Profile</h1>
             <p>{profile?.email}</p>
           </div>
@@ -290,7 +296,15 @@ export default function Profile() {
               </div>
               <div className="form-group">
                 <label className="form-label">Email address</label>
-                <input className="form-input" value={profile?.email || ""} disabled />
+                <input
+                  className="form-input"
+                  value={profile?.email || ""}
+                  disabled
+                  title="Email address cannot be changed"
+                />
+                <p style={{ fontSize: 11, color: "#bbb", fontWeight: 600, margin: "5px 0 0" }}>
+                  Your email is used for login and cannot be changed.
+                </p>
               </div>
               <div className="form-group">
                 <label className="form-label">Phone</label>

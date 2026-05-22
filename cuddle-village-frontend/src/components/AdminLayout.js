@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { FaBars } from "react-icons/fa";
 
 function AdminLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logout = () => {
     localStorage.removeItem("user");
@@ -11,12 +13,13 @@ function AdminLayout({ children }) {
   };
 
   const navLinks = [
-    { to: "/admin/admin-dashboard", label: "Dashboard",  emoji: "📊" },
-    { to: "/admin/products",        label: "Products",   emoji: "🛍️" },
-    { to: "/admin/products/add",    label: "Add Product",emoji: "➕" },
-    { to: "/admin/users",           label: "Users",      emoji: "👥" },
-    { to: "/admin/orders",          label: "Orders",     emoji: "📋" },
-    { to: "/admin/book-club",       label: "Book Club",  emoji: "📚" },
+    { to: "/admin/admin-dashboard", label: "Dashboard",   emoji: "📊" },
+    { to: "/admin/products",        label: "Products",    emoji: "🛍️" },
+    { to: "/admin/products/add",    label: "Add Product", emoji: "➕" },
+    { to: "/admin/users",           label: "Users",       emoji: "👥" },
+    { to: "/admin/orders",          label: "Orders",      emoji: "📋" },
+    { to: "/admin/promo-codes",     label: "Promo Codes", emoji: "🏷️" },
+    { to: "/admin/book-club",       label: "Book Club",   emoji: "📚" },
   ];
 
   return (
@@ -201,11 +204,63 @@ function AdminLayout({ children }) {
           min-height: 100vh;
           overflow-y: auto;
         }
+
+        .admin-mobile-topbar {
+          display: none;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 20px;
+          background: #2d2640;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .admin-hamburger {
+          background: none; border: none; cursor: pointer;
+          color: #fff; padding: 4px; display: flex; align-items: center;
+          font-size: 18px;
+        }
+        .admin-mobile-brand {
+          font-size: 15px; font-weight: 900; color: #fff;
+        }
+
+        .admin-sidebar-overlay {
+          display: none;
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.45);
+          z-index: 99;
+        }
+        .admin-sidebar-overlay.open { display: block; }
+
+        @media (max-width: 768px) {
+          .admin-layout { flex-direction: column; }
+          .admin-mobile-topbar { display: flex; }
+          .admin-sidebar {
+            position: fixed; left: 0; top: 0;
+            height: 100vh; z-index: 100;
+            transform: translateX(-100%);
+            transition: transform 0.28s ease;
+          }
+          .admin-sidebar.open { transform: translateX(0); }
+          .admin-content { padding: 24px 16px; }
+        }
       `}</style>
 
       <div className="admin-layout">
+        {/* Mobile topbar */}
+        <div className="admin-mobile-topbar">
+          <button className="admin-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <FaBars />
+          </button>
+          <span className="admin-mobile-brand">🧸 Admin Panel</span>
+        </div>
+
+        {/* Overlay */}
+        <div
+          className={`admin-sidebar-overlay${sidebarOpen ? " open" : ""}`}
+          onClick={() => setSidebarOpen(false)}
+        />
+
         {/* Sidebar */}
-        <div className="admin-sidebar">
+        <div className={`admin-sidebar${sidebarOpen ? " open" : ""}`}>
           <div className="sidebar-brand">
             <div className="sidebar-brand-icon">🧸</div>
             <div>
@@ -223,6 +278,7 @@ function AdminLayout({ children }) {
                 key={link.to}
                 to={link.to}
                 className={`sidebar-link${isActive ? " active" : ""}`}
+                onClick={() => setSidebarOpen(false)}
               >
                 <span className="sidebar-link-emoji">{link.emoji}</span>
                 {link.label}

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { CartContext } from "../context/CartContext";
 import { useLoyalty } from "../context/LoyaltyContext";
 import { isAuthenticated } from "../utils/auth";
@@ -11,7 +11,30 @@ function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
   const { points, refresh: refreshLoyalty } = useLoyalty();
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
+  // Pre-fill from localStorage (name + email always present after login)
+  const stored = JSON.parse(localStorage.getItem("user") || "{}");
+  const [form, setForm] = useState({
+    name:    stored.name  || "",
+    email:   stored.email || "",
+    phone:   stored.phone || "",
+    address: "",
+    city:    "",
+  });
+  const [prefilled, setPrefilled] = useState(!!(stored.name || stored.email));
+
+  // Fetch full profile to get phone number (not always in the token payload)
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    API.get("/auth/profile").then(({ data }) => {
+      setForm(f => ({
+        ...f,
+        name:  f.name  || data.name  || "",
+        email: f.email || data.email || "",
+        phone: f.phone || data.phone || "",
+      }));
+      if (data.name || data.email) setPrefilled(true);
+    }).catch(() => {});
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,10 +42,30 @@ function Checkout() {
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [redeemError, setRedeemError]        = useState("");
 
+  const [promoInput,    setPromoInput]    = useState("");
+  const [promoApplied,  setPromoApplied]  = useState(null); // { code, discount, message }
+  const [promoError,    setPromoError]    = useState("");
+  const [promoLoading,  setPromoLoading]  = useState(false);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total     = Math.max(0, cartTotal - appliedDiscount);
+  const cartTotal   = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const promoDiscount = promoApplied?.discount || 0;
+  const total         = Math.max(0, cartTotal - appliedDiscount - promoDiscount);
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const res = await API.post("/promo/validate", { code: promoInput.trim(), orderAmount: cartTotal - appliedDiscount });
+      setPromoApplied({ code: res.data.code, discount: res.data.discount, message: res.data.message });
+      setPromoInput("");
+    } catch (err) {
+      setPromoError(err.response?.data?.message || "Invalid promo code.");
+    }
+    setPromoLoading(false);
+  };
 
   // ── Main checkout flow ──────────────────────────────────────────────────────
   const handleCheckout = async () => {
@@ -50,6 +93,7 @@ function Checkout() {
         shippingAddress: { address: form.address, phone: form.phone, city: form.city || "" },
         totalPrice: total,
         paymentMethod: "paystack",
+        promoCode: promoApplied?.code || null,
       });
 
       const order = orderRes.data;
@@ -322,6 +366,12 @@ function Checkout() {
 
             {error && <div className="error-banner">⚠️ {error}</div>}
 
+            {prefilled && (
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, fontWeight: 600, color: "#166534", display: "flex", alignItems: "center", gap: 8 }}>
+                ✅ Details pre-filled from your profile — edit below if needed.
+              </div>
+            )}
+
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Full Name *</label>
@@ -466,6 +516,55 @@ function Checkout() {
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#16a34a", marginBottom: 8 }}>
                 <span>Points discount</span>
                 <span>− KES {appliedDiscount}</span>
+              </div>
+            )}
+
+            {/* ── Promo code ── */}
+            <div style={{ background: "#faf9fe", border: "1.5px solid #e8e4f8", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#8b7fd4", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                🏷️ Promo Code
+              </div>
+              {promoApplied ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>✅ {promoApplied.message}</span>
+                    <div style={{ fontSize: 11, color: "#aaa", fontWeight: 600, marginTop: 2 }}>Code: <strong>{promoApplied.code}</strong></div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPromoApplied(null)}
+                    style={{ fontSize: 12, color: "#c0392b", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}
+                  >Remove</button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      value={promoInput}
+                      onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                      onKeyDown={e => e.key === "Enter" && handleApplyPromo()}
+                      placeholder="Enter promo code"
+                      style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e8e4f8", fontSize: 13, fontFamily: "Nunito, sans-serif", fontWeight: 700, letterSpacing: "0.5px", background: "#fff", textTransform: "uppercase" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoInput.trim()}
+                      style={{ padding: "8px 16px", background: "linear-gradient(135deg,#C3B1E1,#afa7e7)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "Nunito, sans-serif", opacity: promoLoading ? 0.65 : 1 }}
+                    >
+                      {promoLoading ? "…" : "Apply"}
+                    </button>
+                  </div>
+                  {promoError && <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "6px 0 0" }}>⚠️ {promoError}</p>}
+                </>
+              )}
+            </div>
+
+            {promoDiscount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#16a34a", marginBottom: 8 }}>
+                <span>🏷️ Promo discount ({promoApplied?.code})</span>
+                <span>− KES {promoDiscount.toLocaleString()}</span>
               </div>
             )}
 

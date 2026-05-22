@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import API from "../services/api";
 import { CartContext } from "../context/CartContext";
 import { CATEGORIES, CATALOG, FLAT_PRODUCTS, getSubcategories } from "../data/products";
@@ -48,6 +48,18 @@ function enrichProduct(p) {
   return { ...match, ...p, emoji: p.emoji ?? match?.emoji ?? "🛍️" };
 }
 
+// Assign stable display metadata to each product so tabs can filter by it
+function assignDisplayMeta(products) {
+  return products.map((p, i) => ({
+    ...p,
+    _badge:    BADGES[i % BADGES.length],
+    _meta:     METAS[i % METAS.length],
+    _stars:    STARS[i % STARS.length],
+    _reviews:  REVIEWS[i % REVIEWS.length],
+    _discount: DISCOUNTS[i % DISCOUNTS.length],
+  }));
+}
+
 const TABS = ["All", "Trending Now", "Highest Rated", "New Arrivals", "Hand-Picked"];
 
 export default function Products() {
@@ -56,25 +68,36 @@ export default function Products() {
   const [activeSub, setActiveSub]           = useState(null);
   const { addToCart }                       = useContext(CartContext);
   const [addedIds, setAddedIds]             = useState({});
+  const [searchParams]                      = useSearchParams();
+  const searchQuery                         = searchParams.get("search") || "";
 
-  const [allProducts, setAllProducts] = useState(FLAT_PRODUCTS); // ← show catalog immediately
+  const [allProducts, setAllProducts] = useState(() => assignDisplayMeta(FLAT_PRODUCTS));
 
   useEffect(() => {
     API.get("/products")
       .then(res => {
         const enriched = res.data.map(enrichProduct);
-        if (enriched.length > 0) setAllProducts(enriched); // only swap if API returns real data
+        if (enriched.length > 0) setAllProducts(assignDisplayMeta(enriched));
       })
       .catch(() => {}); // silently keep showing FLAT_PRODUCTS
   }, []);
 
   const handleCategoryClick = (catId) => { setActiveCategory(catId); setActiveSub(null); };
 
-  const filtered = allProducts.filter(p => {
+  const baseFiltered = allProducts.filter(p => {
     if (activeCategory !== "all" && p.category !== activeCategory) return false;
     if (activeSub && p.subcategory !== activeSub) return false;
+    if (searchQuery && !p.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+
+  const filtered = (() => {
+    if (activeTab === "Trending Now")  return baseFiltered.filter(p => p._meta === "Trending Now");
+    if (activeTab === "Highest Rated") return [...baseFiltered].sort((a, b) => b._stars - a._stars);
+    if (activeTab === "New Arrivals")  return baseFiltered.filter(p => p._meta === "New Arrival");
+    if (activeTab === "Hand-Picked")   return baseFiltered.filter(p => p._meta === "Hand-Picked");
+    return baseFiltered;
+  })();
 
   const handleAdd = (e, product) => {
     e.preventDefault();
@@ -246,6 +269,13 @@ export default function Products() {
         }
         .add-to-cart-btn.added { background:linear-gradient(135deg,#B5D99C,#9dcc82); color:#fff; border-color:transparent; }
 
+        /* Search result badge */
+        .search-result-badge {
+          font-size:13px; font-weight:700; color:#555;
+          margin-bottom:16px; padding:10px 16px;
+          background:#f0edff; border-radius:10px;
+        }
+
         /* Empty */
         .empty-state { text-align:center; padding:80px 20px; color:#bbb; }
         .empty-state .emoji { font-size:56px; margin-bottom:16px; }
@@ -338,6 +368,14 @@ export default function Products() {
               </div>
             </div>
 
+            {/* Search result banner */}
+            {searchQuery && (
+              <div className="search-result-badge">
+                Showing results for <strong>"{searchQuery}"</strong>
+                <Link to="/products" style={{ marginLeft: 8, color: "#afa7e7", fontWeight: 800 }}>✕ Clear</Link>
+              </div>
+            )}
+
             {/* Subcategory pills */}
             {subcategories.length > 1 && (
               <div className="sub-pills">
@@ -357,12 +395,12 @@ export default function Products() {
               </div>
             ) : (
               <div className="products-grid">
-                {filtered.map((product, i) => {
-                  const badge    = BADGES[i % BADGES.length];
-                  const meta     = METAS[i % METAS.length];
-                  const stars    = STARS[i % STARS.length];
-                  const reviews  = REVIEWS[i % REVIEWS.length];
-                  const discount = DISCOUNTS[i % DISCOUNTS.length];
+                {filtered.map((product) => {
+                  const badge    = product._badge;
+                  const meta     = product._meta;
+                  const stars    = product._stars;
+                  const reviews  = product._reviews;
+                  const discount = product._discount;
                   const oldPrice = product.price && discount ? Math.round(product.price / (1 - discount)) : null;
                   const isAdded  = addedIds[product._id];
                   return (

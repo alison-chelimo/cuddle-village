@@ -16,10 +16,16 @@ export default function useToast() {
     }, 5000);
   }, []);
 
+  const dismissToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const toast = {
     success: (msg) => addToast(msg, "success"),
     error:   (msg) => addToast(msg, "error"),
+    warning: (msg) => addToast(msg, "warning"),
+    info:    (msg) => addToast(msg, "info"),
   };
 
-  return { toasts, toast };
+  return { toasts, toast, dismissToast };
 }

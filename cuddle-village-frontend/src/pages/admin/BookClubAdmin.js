@@ -351,23 +351,23 @@ function HubContentTab() {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
-export default function BookClubAdmin() {
+export default function BookClubAdmin({ noLayout = false }) {
   const [tab, setTab] = useState("children");
 
-  return (
-    <AdminLayout>
+  const content = (
+    <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
         .bca-wrap * { font-family: 'Nunito', sans-serif; }
       `}</style>
 
-      <div className="bca-wrap">
+      <div className="bca-wrap" style={noLayout ? { padding: "32px 24px", background: "#faf9fe", minHeight: "100vh" } : {}}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 26, fontWeight: 900, color: "#2d2640", margin: "0 0 4px" }}>Book Club</h1>
           <p style={{ fontSize: 13, color: "#aaa", margin: 0, fontWeight: 600 }}>Manage enrolled children, sessions, and hub content</p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
           <TabBtn active={tab === "children"} onClick={() => setTab("children")}>👶 Enrolled Children</TabBtn>
           <TabBtn active={tab === "sessions"} onClick={() => setTab("sessions")}>📅 Sessions</TabBtn>
           <TabBtn active={tab === "content"}  onClick={() => setTab("content")}>📚 Hub Content</TabBtn>
@@ -377,6 +377,8 @@ export default function BookClubAdmin() {
         {tab === "sessions" && <SessionsTab />}
         {tab === "content"  && <HubContentTab />}
       </div>
-    </AdminLayout>
+    </>
   );
+
+  return noLayout ? content : <AdminLayout>{content}</AdminLayout>;
 }
