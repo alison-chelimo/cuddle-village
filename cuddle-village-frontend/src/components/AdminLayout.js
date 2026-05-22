@@ -1,16 +1,11 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FaBars } from "react-icons/fa";
+import { logout } from "../utils/auth";
 
 function AdminLayout({ children }) {
-  const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const logout = () => {
-    localStorage.removeItem("user");
-    navigate("/login"); 
-  };
 
   const navLinks = [
     { to: "/admin/admin-dashboard", label: "Dashboard",   emoji: "📊" },
