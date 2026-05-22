@@ -1,5 +1,8 @@
 const router = require("express").Router();
 const { protect, facilitatorOnly } = require("../middleware/authMiddleware");
+const { portalLimiter } = require("../middleware/rateLimiter");
+
+router.use(portalLimiter);
 const {
   getMyChild, getUpcomingSession, getHubContent,
   getEnrolled, getSessions, createSession, updateSession, markAttendance,

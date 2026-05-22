@@ -1,4 +1,5 @@
 const axios = require("axios");
+const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const { awardLoyaltyPoints } = require("../utils/loyaltyHelper");
 
@@ -59,6 +60,9 @@ exports.verifyPayment = async (req, res) => {
   const { reference } = req.params;
 
   if (!reference) return res.status(400).json({ message: "Reference is required" });
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(reference)) {
+    return res.status(400).json({ message: "Invalid reference format" });
+  }
 
   try {
     const response = await axios.get(
@@ -69,10 +73,13 @@ exports.verifyPayment = async (req, res) => {
     const data = response.data.data;
     let success = data.status === "success";
     const orderId = data.metadata?.orderId;
+    const safeOrderId = mongoose.Types.ObjectId.isValid(orderId)
+      ? new mongoose.Types.ObjectId(orderId)
+      : null;
 
-    if (success && orderId) {
+    if (success && safeOrderId) {
       console.log("✅ Payment verified for order:", orderId, "ref:", reference);
-      const order = await Order.findById(orderId);
+      const order = await Order.findById(safeOrderId);
       if (order && order.paymentStatus !== "paid") {
         order.paymentStatus    = "paid";
         order.paymentReference = reference;
@@ -84,8 +91,8 @@ exports.verifyPayment = async (req, res) => {
 
     // Fallback: Paystack can return "pending" for a few seconds after redirect.
     // If the webhook already processed the payment, trust the DB.
-    if (!success && orderId) {
-      const order = await Order.findById(orderId);
+    if (!success && safeOrderId) {
+      const order = await Order.findById(safeOrderId);
       if (order?.paymentStatus === "paid") {
         console.log("✅ DB fallback: order already paid by webhook, ref:", reference);
         return res.json({
@@ -141,10 +148,13 @@ exports.webhook = async (req, res) => {
   if (event.event === "charge.success") {
     const data    = event.data;
     const orderId = data.metadata?.orderId;
+    const safeOrderId = mongoose.Types.ObjectId.isValid(orderId)
+      ? new mongoose.Types.ObjectId(orderId)
+      : null;
     console.log("✅ Charge success for order:", orderId, "| ref:", data.reference);
 
-    if (orderId) {
-      const order = await Order.findById(orderId);
+    if (safeOrderId) {
+      const order = await Order.findById(safeOrderId);
       if (order) {
         order.paymentStatus    = "paid";
         order.paymentReference = data.reference;
