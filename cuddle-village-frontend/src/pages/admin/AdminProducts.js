@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import API from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
+import ConfirmModal from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 
 function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, productId: null, productName: "" });
   const navigate = useNavigate();
 
   useEffect(() => { 
@@ -31,13 +33,14 @@ function AdminProducts() {
   }
 };
 
-  const deleteProduct = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+  const handleConfirmDelete = async () => {
     try {
-      await API.delete(`/products/${id}`);
+      await API.delete(`/products/${deleteConfirm.productId}`);
       fetchProducts();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteConfirm({ open: false, productId: null, productName: "" });
     }
   };
 
@@ -410,7 +413,7 @@ function AdminProducts() {
                               </button>
                               <button
                                 className="action-btn btn-delete"
-                                onClick={() => deleteProduct(p._id)}
+                                onClick={() => setDeleteConfirm({ open: true, productId: p._id, productName: p.name })}
                               >
                                 🗑️ Delete
                               </button>
@@ -427,6 +430,16 @@ function AdminProducts() {
 
         </div>
       </AdminLayout>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.open}
+        title="Delete Product?"
+        message={`"${deleteConfirm.productName}" will be permanently removed from the store. This cannot be undone.`}
+        confirmLabel="Delete Product"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, productId: null, productName: "" })}
+        danger
+      />
     </>
   );
 }
