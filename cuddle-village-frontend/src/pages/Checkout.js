@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { CartContext } from "../context/CartContext";
 import { useLoyalty } from "../context/LoyaltyContext";
 import { isAuthenticated } from "../utils/auth";
@@ -11,7 +11,30 @@ function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
   const { points, refresh: refreshLoyalty } = useLoyalty();
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
+  // Pre-fill from localStorage (name + email always present after login)
+  const stored = JSON.parse(localStorage.getItem("user") || "{}");
+  const [form, setForm] = useState({
+    name:    stored.name  || "",
+    email:   stored.email || "",
+    phone:   stored.phone || "",
+    address: "",
+    city:    "",
+  });
+  const [prefilled, setPrefilled] = useState(!!(stored.name || stored.email));
+
+  // Fetch full profile to get phone number (not always in the token payload)
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    API.get("/auth/profile").then(({ data }) => {
+      setForm(f => ({
+        ...f,
+        name:  f.name  || data.name  || "",
+        email: f.email || data.email || "",
+        phone: f.phone || data.phone || "",
+      }));
+      if (data.name || data.email) setPrefilled(true);
+    }).catch(() => {});
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -321,6 +344,12 @@ function Checkout() {
             <h3>📦 Delivery Details</h3>
 
             {error && <div className="error-banner">⚠️ {error}</div>}
+
+            {prefilled && (
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, fontWeight: 600, color: "#166534", display: "flex", alignItems: "center", gap: 8 }}>
+                ✅ Details pre-filled from your profile — edit below if needed.
+              </div>
+            )}
 
             <div className="form-row">
               <div className="form-group">
