@@ -33,6 +33,7 @@ import Profile from "./pages/Profile";
 import ChildProgressPortal from "./pages/ChildProgressPortal";
 import BookClubAdmin from "./pages/admin/BookClubAdmin";
 import FacilitatorRoute from "./components/FacilitatorRoute";
+import FacilitatorDashboard from "./pages/facilitator/FacilitatorDashboard";
 
 function Layout() {
   const location = useLocation();
@@ -90,6 +91,10 @@ function Layout() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/portal/my-child" element={<ProtectedRoute><ChildProgressPortal /></ProtectedRoute>} />
         <Route path="/admin/book-club" element={<FacilitatorRoute><BookClubAdmin /></FacilitatorRoute>} />
+
+        {/* Facilitator portal — uses regular Navbar + Footer */}
+        <Route path="/facilitator/dashboard" element={<FacilitatorRoute><FacilitatorDashboard /></FacilitatorRoute>} />
+        <Route path="/facilitator/book-club" element={<FacilitatorRoute><BookClubAdmin noLayout /></FacilitatorRoute>} />
       </Routes>
       {!isAdminRoute && <Footer />}
     </>
