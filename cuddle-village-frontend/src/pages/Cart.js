@@ -79,8 +79,8 @@ function Cart() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 30px;
           flex-shrink: 0;
+          overflow: hidden;
         }
 
         .item-info h4 {
@@ -265,7 +265,12 @@ function Cart() {
             <div className="cart-items">
               {cart.map(item => (
                 <div key={item._id} className="cart-item">
-                  <div className="item-thumb">🧸</div>
+                  <div className="item-thumb">
+                    {item.image
+                      ? <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 14 }} />
+                      : <span style={{ fontSize: 30 }}>{item.emoji || "🧸"}</span>
+                    }
+                  </div>
 
                   <div className="item-info">
                     <h4>{item.name}</h4>

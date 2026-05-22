@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import { useLoyalty } from "../context/LoyaltyContext";
-import { FaShoppingCart, FaSearch, FaBars, FaTimes } from "react-icons/fa";
+import { FaShoppingCart, FaSearch, FaBars, FaTimes, FaUserCircle } from "react-icons/fa";
 import { isAuthenticated, logout } from "../utils/auth";
 import logo from "../assets/logo1.JPG";
 
@@ -252,8 +252,8 @@ function Navbar() {
             <Link to="/orders" className={`nav-link ${isActive("/orders") ? "active" : ""}`}>Orders</Link>
           )}
           {isAuthenticated() && (
-            <Link to="/profile" className={`nav-link ${isActive("/profile") ? "active" : ""}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              Profile
+            <Link to="/profile" className={`nav-link ${isActive("/profile") ? "active" : ""}`} style={{ display: "flex", alignItems: "center", gap: 6 }} title="My Profile">
+              <FaUserCircle size={20} />
               <span style={{ fontSize: 11, fontWeight: 800, color: TIER_COLORS[tier] || "#8b7fd4", background: "#f5f3ff", padding: "2px 8px", borderRadius: 20, border: "1.5px solid #e8e4f8" }}>
                 ★ {points} · {tier}
               </span>
@@ -307,7 +307,9 @@ function Navbar() {
           <Link to="/orders" className={`mobile-nav-link ${isActive("/orders") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Orders</Link>
         )}
         {isAuthenticated() && (
-          <Link to="/profile" className={`mobile-nav-link ${isActive("/profile") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Profile</Link>
+          <Link to="/profile" className={`mobile-nav-link ${isActive("/profile") ? "active" : ""}`} onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FaUserCircle size={16} /> Profile
+          </Link>
         )}
 
         <Link to="/cart" className={`mobile-nav-link ${isActive("/cart") ? "active" : ""}`} onClick={() => setMenuOpen(false)}>
