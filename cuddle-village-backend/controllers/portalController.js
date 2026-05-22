@@ -1,3 +1,4 @@
+const mongoose        = require("mongoose");
 const User            = require("../models/User");
 const LearningSession = require("../models/LearningSession");
 const HubContent      = require("../models/HubContent");
@@ -239,8 +240,17 @@ exports.getAnnouncements = async (req, res) => {
 
 exports.updateAnnouncementStatus = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid ID" });
+    }
+    const VALID_STATUSES = ["draft", "sent"];
+    if (!VALID_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    const safeId = new mongoose.Types.ObjectId(req.params.id);
+    const safeStatus = req.body.status === "sent" ? "sent" : "draft";
     const ann = await Announcement.findByIdAndUpdate(
-      req.params.id, { status: req.body.status }, { new: true }
+      safeId, { status: safeStatus }, { new: true }
     );
     if (!ann) return res.status(404).json({ message: "Not found" });
     res.json(ann);

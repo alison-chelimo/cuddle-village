@@ -71,6 +71,9 @@ const orderSchema = new mongoose.Schema(
     pointsEarned:   { type: Number, default: 0 },
     pointsRedeemed: { type: Number, default: 0 },
     pointsDiscount: { type: Number, default: 0 },
+
+    promoCode:      { type: String, default: null },
+    promoDiscount:  { type: Number, default: 0 },
   },
   { timestamps: true }
 );
