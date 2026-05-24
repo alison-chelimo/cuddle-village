@@ -10,7 +10,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Name, email and message are required" });
     }
 
-    await ContactMessage.create({ name, email, phone, message });
+    await ContactMessage.create({
+      name:    String(name),
+      email:   String(email),
+      phone:   phone ? String(phone) : undefined,
+      message: String(message),
+    });
     res.json({ message: "Message received successfully" });
   } catch (err) {
     console.error("Contact save error:", err);
