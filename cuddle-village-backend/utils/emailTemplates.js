@@ -1,5 +1,14 @@
 const year = new Date().getFullYear();
 
+function escHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Shared wrapper — table-based for maximum email client compatibility
 function wrap(headerAccent, body) {
   return `<!DOCTYPE html>
@@ -149,4 +158,99 @@ function bookClubConfirmationEmail(child, parent, program) {
   return wrap("Book Club Confirmed ✓", body);
 }
 
-module.exports = { verifyEmail, resetPasswordEmail, bookClubConfirmationEmail };
+// ── Order receipt email ───────────────────────────────────────────────────────
+function orderReceiptEmail(order, user) {
+  const orderRef = order._id.toString().slice(-8).toUpperCase();
+  const paidDate = order.paidAt
+    ? new Date(order.paidAt).toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" })
+    : new Date().toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" });
+
+  const items = (order.orderItems || []).map((item, i) => `
+    <tr style="background:${i % 2 === 1 ? "#faf9fe" : "#ffffff"};">
+      <td style="padding:10px 12px;font-size:13px;color:#2d2640;font-weight:600;border-bottom:1px solid #f0eeff;">${escHtml(item.name)}</td>
+      <td style="padding:10px 12px;font-size:13px;color:#666;text-align:center;border-bottom:1px solid #f0eeff;">${item.qty || 1}</td>
+      <td style="padding:10px 12px;font-size:13px;color:#666;text-align:right;border-bottom:1px solid #f0eeff;">KSh ${Number(item.price || 0).toLocaleString("en-KE")}</td>
+      <td style="padding:10px 12px;font-size:13px;color:#2d2640;font-weight:700;text-align:right;border-bottom:1px solid #f0eeff;">KSh ${Number((item.qty || 1) * (item.price || 0)).toLocaleString("en-KE")}</td>
+    </tr>`).join("");
+
+  const subtotal = (order.orderItems || []).reduce((s, it) => s + (it.qty || 1) * (it.price || 0), 0);
+
+  let discountRows = "";
+  if ((order.promoDiscount || 0) > 0) {
+    const label = order.promoCode ? `Promo (${escHtml(order.promoCode)})` : "Promo Discount";
+    discountRows += `<tr><td style="padding:4px 0;font-size:13px;color:#8b7fd4;">${label}</td><td style="padding:4px 0;font-size:13px;color:#8b7fd4;text-align:right;">−KSh ${Number(order.promoDiscount).toLocaleString("en-KE")}</td></tr>`;
+  }
+  if ((order.pointsDiscount || 0) > 0) {
+    discountRows += `<tr><td style="padding:4px 0;font-size:13px;color:#8b7fd4;">Points Redeemed (${order.pointsRedeemed || 0} pts)</td><td style="padding:4px 0;font-size:13px;color:#8b7fd4;text-align:right;">−KSh ${Number(order.pointsDiscount).toLocaleString("en-KE")}</td></tr>`;
+  }
+
+  const loyaltyBanner = (order.pointsEarned || 0) > 0
+    ? `<div style="margin-top:20px;background:#f0eeff;border-radius:10px;padding:12px 16px;text-align:center;font-size:13px;color:#8b7fd4;font-weight:700;">
+        You earned ${order.pointsEarned} loyalty point${order.pointsEarned === 1 ? "" : "s"} on this order!
+       </div>`
+    : "";
+
+  const body = `
+    <h2 style="margin:0 0 6px;font-size:22px;font-weight:800;color:#2d2640;">Thank you, ${escHtml(user.name || "Customer")}!</h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#666;line-height:1.6;">
+      Your payment was successful. A PDF copy of your receipt is attached to this email.
+    </p>
+
+    <!-- Order summary card -->
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+      style="background:#f5f3ff;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+      <tr>
+        <td style="font-size:12px;color:#888;font-weight:600;padding-bottom:4px;">ORDER NUMBER</td>
+        <td style="font-size:12px;color:#888;font-weight:600;text-align:right;padding-bottom:4px;">DATE</td>
+      </tr>
+      <tr>
+        <td style="font-size:16px;color:#2d2640;font-weight:800;">#${orderRef}</td>
+        <td style="font-size:14px;color:#2d2640;font-weight:700;text-align:right;">${paidDate}</td>
+      </tr>
+      ${order.paymentReference ? `<tr><td colspan="2" style="font-size:11px;color:#aaa;padding-top:8px;">Ref: ${escHtml(order.paymentReference)}</td></tr>` : ""}
+    </table>
+
+    <!-- Items table -->
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <thead>
+        <tr style="background:#2d2640;">
+          <th style="padding:10px 12px;font-size:12px;color:#ffffff;font-weight:700;text-align:left;">Item</th>
+          <th style="padding:10px 12px;font-size:12px;color:#ffffff;font-weight:700;text-align:center;">Qty</th>
+          <th style="padding:10px 12px;font-size:12px;color:#ffffff;font-weight:700;text-align:right;">Price</th>
+          <th style="padding:10px 12px;font-size:12px;color:#ffffff;font-weight:700;text-align:right;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>${items}</tbody>
+    </table>
+
+    <!-- Totals -->
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:8px;">
+      <tr><td style="padding:4px 0;font-size:13px;color:#666;">Subtotal</td><td style="padding:4px 0;font-size:13px;color:#666;text-align:right;">KSh ${Number(subtotal).toLocaleString("en-KE")}</td></tr>
+      ${discountRows}
+      <tr><td colspan="2" style="border-top:2px solid #2d2640;padding-top:8px;"></td></tr>
+      <tr>
+        <td style="padding-top:4px;font-size:15px;color:#2d2640;font-weight:800;">Total</td>
+        <td style="padding-top:4px;font-size:15px;color:#2d2640;font-weight:800;text-align:right;">KSh ${Number(order.totalPrice || 0).toLocaleString("en-KE")}</td>
+      </tr>
+    </table>
+
+    ${loyaltyBanner}
+
+    <!-- Shipping address -->
+    ${order.shippingAddress ? `
+    <div style="margin-top:24px;padding:14px 16px;border:1px solid #f0eeff;border-radius:10px;">
+      <div style="font-size:11px;color:#aaa;font-weight:600;letter-spacing:1px;margin-bottom:6px;">SHIPPING TO</div>
+      <div style="font-size:13px;color:#2d2640;font-weight:700;">${escHtml(order.shippingAddress.address)}</div>
+      <div style="font-size:13px;color:#666;">${escHtml(order.shippingAddress.city)}</div>
+      <div style="font-size:13px;color:#666;">${escHtml(order.shippingAddress.phone)}</div>
+    </div>` : ""}
+
+    <p style="margin:24px 0 0;font-size:13px;color:#999;line-height:1.6;">
+      Questions? Contact us at
+      <a href="mailto:${process.env.EMAIL_USER}" style="color:#8b7fd4;font-weight:700;">${process.env.EMAIL_USER}</a>.
+    </p>`;
+
+  return wrap("Payment Confirmed ✓", body);
+}
+
+module.exports = { verifyEmail, resetPasswordEmail, bookClubConfirmationEmail, orderReceiptEmail };

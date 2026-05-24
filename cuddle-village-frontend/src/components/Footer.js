@@ -47,6 +47,7 @@ function Footer() {
           align-items: center; justify-content: center;
           color: #ccc; text-decoration: none; font-size: 16px;
           transition: background 0.2s, color 0.2s;
+          border: none; cursor: pointer; padding: 0;
         }
         .ft-social-btn:hover { background: rgba(175,167,231,0.25); color: #C3B1E1; }
 
@@ -135,9 +136,9 @@ function Footer() {
               Your trusted baby &amp; parenting lifestyle partner in Nairobi, Kenya.
             </p>
             <div className="ft-socials">
-              <a href="#" className="ft-social-btn" title="Instagram">📸</a>
-              <a href="#" className="ft-social-btn" title="Facebook">👥</a>
-              <a href="#" className="ft-social-btn" title="Twitter / X">🐦</a>
+              <button className="ft-social-btn" title="Instagram">📸</button>
+              <button className="ft-social-btn" title="Facebook">👥</button>
+              <button className="ft-social-btn" title="Twitter / X">🐦</button>
             </div>
           </div>
 
