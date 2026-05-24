@@ -97,13 +97,16 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` });
     }
 
-    const order = await Order.findById(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    const order = await Order.findById(new mongoose.Types.ObjectId(req.params.id));
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     if (newStatus) order.status = newStatus;
 
     if (req.body.trackingNumber !== undefined) {
-      order.trackingNumber = req.body.trackingNumber || null;
+      order.trackingNumber = req.body.trackingNumber ? String(req.body.trackingNumber) : null;
     }
 
     if (order.status === "delivered") order.isDelivered = true;
