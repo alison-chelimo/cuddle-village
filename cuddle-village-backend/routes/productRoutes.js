@@ -9,12 +9,12 @@ const { productLimiter }      = require("../middleware/rateLimiter");
 router.post("/", productLimiter, protect, adminOnly, upload.single("image"), async (req, res) => {
     try {
   const product = await Product.create({
-    name: req.body.name,
-    price: req.body.price,
-    description: req.body.description,
-    category: req.body.category,
-    stock: req.body.stock,
-    image: req.file?.path, // Cloudinary URL
+    name:        String(req.body.name        ?? ""),
+    price:       Number(req.body.price)      || 0,
+    description: String(req.body.description ?? ""),
+    category:    String(req.body.category    ?? ""),
+    stock:       parseInt(String(req.body.stock ?? 0), 10),
+    image:       req.file?.path,
   });
 
   res.status(201).json(product);
@@ -37,11 +37,11 @@ router.put("/:id", productLimiter, protect, adminOnly, upload.single("image"), a
 
   const { name, price, description, category, stock } = req.body;
   const updateData = {};
-  if (name        !== undefined) updateData.name        = name;
-  if (price       !== undefined) updateData.price       = price;
-  if (description !== undefined) updateData.description = description;
-  if (category    !== undefined) updateData.category    = category;
-  if (stock       !== undefined) updateData.stock       = stock;
+  if (name        !== undefined) updateData.name        = String(name);
+  if (price       !== undefined) updateData.price       = Number(price);
+  if (description !== undefined) updateData.description = String(description);
+  if (category    !== undefined) updateData.category    = String(category);
+  if (stock       !== undefined) updateData.stock       = parseInt(String(stock), 10);
   if (req.file)                  updateData.image       = req.file.path;
 
   const product = await Product.findByIdAndUpdate(
