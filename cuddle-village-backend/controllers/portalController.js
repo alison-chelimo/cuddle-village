@@ -219,24 +219,29 @@ exports.updateHubContent = async (req, res) => {
     return res.status(404).json({ message: "Content not found" });
   }
   const { group, contentType, title, author, emoji, tag, description, weekLabel, isActive, order } = req.body;
-  const update = {};
-  if (group       !== undefined) update.group       = group;
-  if (contentType !== undefined) update.contentType = contentType;
-  if (title       !== undefined) update.title       = title;
-  if (author      !== undefined) update.author      = author;
-  if (emoji       !== undefined) update.emoji       = emoji;
-  if (tag         !== undefined) update.tag         = tag;
-  if (description !== undefined) update.description = description;
-  if (weekLabel   !== undefined) update.weekLabel   = weekLabel;
-  if (isActive    !== undefined) update.isActive    = isActive;
-  if (order       !== undefined) update.order       = order;
-  const item = await HubContent.findByIdAndUpdate(
-    new mongoose.Types.ObjectId(req.params.id),
-    update,
-    { new: true }
-  );
+  const VALID_GROUPS = ["early-learners", "growing-readers"];
+  const VALID_TYPES  = ["book", "activity", "milestone"];
+  if (group       !== undefined && !VALID_GROUPS.includes(group))       return res.status(400).json({ message: "Invalid group" });
+  if (contentType !== undefined && !VALID_TYPES.includes(contentType))  return res.status(400).json({ message: "Invalid contentType" });
+
+  // Use findById + save() so user values go through Mongoose schema validation
+  // rather than a raw MongoDB update-doc argument (avoids CodeQL taint into query).
+  const item = await HubContent.findById(new mongoose.Types.ObjectId(req.params.id));
   if (!item) return res.status(404).json({ message: "Content not found" });
-  res.json(item);
+
+  if (group       !== undefined) item.group       = VALID_GROUPS[VALID_GROUPS.indexOf(group)];
+  if (contentType !== undefined) item.contentType = VALID_TYPES[VALID_TYPES.indexOf(contentType)];
+  if (title       !== undefined) item.title       = String(title);
+  if (author      !== undefined) item.author      = String(author);
+  if (emoji       !== undefined) item.emoji       = String(emoji);
+  if (tag         !== undefined) item.tag         = String(tag);
+  if (description !== undefined) item.description = String(description);
+  if (weekLabel   !== undefined) item.weekLabel   = String(weekLabel);
+  if (isActive    !== undefined) item.isActive    = Boolean(isActive);
+  if (order       !== undefined) item.order       = Number(order);
+
+  const updated = await item.save();
+  res.json(updated);
 };
 
 exports.deleteHubContent = async (req, res) => {
