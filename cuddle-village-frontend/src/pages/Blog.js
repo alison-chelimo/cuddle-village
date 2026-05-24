@@ -102,6 +102,8 @@ function Blog() {
         .blog-read-more {
           font-size:13px; font-weight:900; color:#8b7fd4;
           text-decoration:none; align-self:flex-start;
+          background: none; border: none; cursor: pointer; padding: 0;
+          font-family: inherit;
         }
         .blog-read-more:hover { text-decoration:underline; }
 
@@ -134,7 +136,7 @@ function Blog() {
                     </div>
                     <div className="blog-title">{post.title}</div>
                     <div className="blog-excerpt">{post.excerpt}</div>
-                    <a href="#" className="blog-read-more">Read More →</a>
+                    <button className="blog-read-more">Read More →</button>
                   </div>
                 </div>
               );
