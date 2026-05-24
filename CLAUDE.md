@@ -23,8 +23,8 @@ npm run test:coverage    # Jest with coverage report
 
 ## Sample Credentials
 
-| Role        | Email                             | Password        |
-| ----------- | --------------------------------- | --------------- |
+| Role | Email | Password |
+| --- | --- | --- |
 | Admin | `admin@cuddlevillage.com` | `Admin@1234` |
 | Facilitator | `facilitator@cuddlevillage.com` | `Facilitator@1` |
 | Customer | `jane@cuddlevillage.com` | `User@12345` |
@@ -33,7 +33,7 @@ Run `node seedUsers.js` from `cuddle-village-backend/` to create these accounts 
 
 ## Environment (cuddle-village-backend/.env)
 
-```
+```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
