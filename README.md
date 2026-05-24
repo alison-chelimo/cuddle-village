@@ -100,7 +100,7 @@ A premium baby and parenting e-commerce platform for the Kenyan market. Combines
 | POST | `/verify` | public | Email verification (6-digit code) |
 | POST | `/resend` | public | Resend verification code |
 | POST | `/forgot-password` | public | Send password reset email |
-| POST | `/reset-password/:token` | public | Reset password (token valid 1 hr) |
+| POST | `/reset-password` | public | Reset password (token in body, valid 1 hr) |
 | GET | `/profile` | user | Get current user profile |
 | PUT | `/profile` | user | Update name and phone |
 | PUT | `/profile/password` | user | Change password |
@@ -221,12 +221,15 @@ cd cuddle-village
 # Backend
 cd cuddle-village-backend
 npm install
-npm run dev        # http://localhost:5000
+npm run dev              # http://localhost:5000
+npm test                 # run test suite
+npm run test:coverage    # with coverage report
 
 # Frontend (separate terminal)
 cd cuddle-village-frontend
 npm install
-npm start          # http://localhost:3000
+npm start                # http://localhost:3000
+npm test                 # run test suite
 ```
 
 ### Seed scripts (from `cuddle-village-backend/`)
