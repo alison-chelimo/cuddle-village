@@ -401,7 +401,7 @@ function Checkout() {
             )}
 
             <div className="summary-divider" />
-
+ 
             <div className="summary-total">
               <span>Total</span>
               <span>KES {total.toLocaleString()}</span>

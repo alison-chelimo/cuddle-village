@@ -53,7 +53,7 @@ function Login() {
 
       // Normal users
       else {
-        navigate("/home");
+        navigate("/");
       }
     } catch (err) {  
       console.log(err.response);

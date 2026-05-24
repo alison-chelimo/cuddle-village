@@ -193,7 +193,7 @@ function Sidebar() {
         </div>
       </div>
     </>
-  );
+  ); 
 }
 
 export default Sidebar;

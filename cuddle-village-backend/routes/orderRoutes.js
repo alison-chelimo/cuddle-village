@@ -70,18 +70,37 @@ router.get("/", protect, adminOnly, async (req, res) => {
 // ADMIN: UPDATE STATUS
 // =============================
 router.put("/:id", protect, adminOnly, async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  try {
+    const newStatus = req.body.status?.toLowerCase();
+    if (!newStatus) return res.status(400).json({ message: "Status is required" });
 
-  if (!order) return res.status(404).json({ message: "Order not found" });
+    const updateFields = { status: newStatus };
 
-  order.status = (  req.body.status || order.status).toLowerCase();
+    if (newStatus === "paid") {
+      updateFields.isPaid = true;
+      updateFields.paymentStatus = "paid";
+      updateFields.paidAt = new Date();
+    }
+    if (newStatus === "delivered") {
+      updateFields.isDelivered = true;
+    }
+    if (newStatus === "cancelled") {
+      updateFields.paymentStatus = "unpaid";
+    }
 
-  if (order.status === "paid") order.isPaid = true;
-  if (order.status === "delivered") order.isDelivered = true;
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateFields },
+      { new: true, runValidators: false } // ← skips full doc validation
+    );
 
-  await order.save();
+    if (!updated) return res.status(404).json({ message: "Order not found" });
 
-  res.json(order);
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ Order update error:", err.message);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

@@ -28,7 +28,8 @@ function AdminOrders() {
       await API.put(`/orders/${id}`, { status });
       await fetchOrders();
     } catch (err) {
-      console.error(err);
+      console.error("Update failed:", err.response?.data || err.message);
+      alert(`Failed to update order: ${err.response?.data?.message || err.message}`);
     } finally {
       setUpdatingId(null);
     }
@@ -44,7 +45,6 @@ function AdminOrders() {
   const getStatusStyle = (status) =>
     statusConfig[status?.toLowerCase()] || { bg: "#f5f5f5", color: "#888", border: "#ddd", dot: "#bbb" };
 
-  // ── All comparisons use lowercase ──────────────────────────────────────────
   const totalRevenue = orders
     .filter((o) => o.status === "paid" || o.status === "delivered")
     .reduce((sum, o) => sum + (o.totalPrice || 0), 0);
@@ -59,18 +59,12 @@ function AdminOrders() {
         .orders-table-row:hover { background: #f5f2ff !important; }
 
         .action-btn {
-          border: none;
-          border-radius: 8px;
-          padding: 7px 14px;
-          font-size: 12px;
-          font-weight: 800;
-          cursor: pointer;
-          font-family: 'Nunito', sans-serif;
-          transition: all 0.2s;
-          white-space: nowrap;
+          border: none; border-radius: 8px; padding: 7px 14px;
+          font-size: 12px; font-weight: 800; cursor: pointer;
+          font-family: 'Nunito', sans-serif; transition: all 0.2s; white-space: nowrap;
         }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-paid  { background: #edfaf4; color: #1a7a4a; border: 1.5px solid #34c77b55; }
+        .btn-paid    { background: #edfaf4; color: #1a7a4a; border: 1.5px solid #34c77b55; }
         .btn-paid:hover:not(:disabled)    { background: #34c77b; color: #fff; }
         .btn-deliver { background: #eff8ff; color: #1a6fa8; border: 1.5px solid #5bb8f555; }
         .btn-deliver:hover:not(:disabled) { background: #5bb8f5; color: #fff; }
@@ -82,7 +76,7 @@ function AdminOrders() {
           background: #fff; border: 1.5px solid #e8e4f8; border-radius: 12px;
           padding: 9px 18px; font-size: 13px; font-weight: 800; color: #8b7fd4;
           cursor: pointer; font-family: 'Nunito', sans-serif;
-          transition: all 0.2s; text-decoration: none; margin-bottom: 28px;
+          transition: all 0.2s; margin-bottom: 28px;
         }
         .back-btn:hover { background: #f0eeff; border-color: #afa7e7; transform: translateX(-2px); }
 
@@ -97,9 +91,24 @@ function AdminOrders() {
           font-size: 20px; flex-shrink: 0;
         }
 
+        /* Order card for mobile */
+        .order-card {
+          background: #fff; border-radius: 16px; padding: 18px 20px;
+          border: 1.5px solid #f0edff; box-shadow: 0 2px 12px rgba(175,167,231,0.08);
+          display: flex; flex-direction: column; gap: 14px;
+        }
+        .order-card-row {
+          display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        }
+
         @media (max-width: 768px) {
-          .orders-table-wrap { overflow-x: auto; }
+          .orders-table-wrap { display: none !important; }
+          .orders-cards-wrap { display: flex !important; }
           .stats-mini-grid { grid-template-columns: 1fr 1fr !important; }
+          .orders-header h1 { font-size: 26px !important; }
+        }
+        @media (min-width: 769px) {
+          .orders-cards-wrap { display: none !important; }
         }
       `}</style>
 
@@ -110,7 +119,7 @@ function AdminOrders() {
             ← Back to Dashboard
           </button>
 
-          <div style={{ marginBottom: 28 }}>
+          <div className="orders-header" style={{ marginBottom: 28 }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: "#f0edff", border: "1.5px solid #e8e4f8",
@@ -128,18 +137,18 @@ function AdminOrders() {
             </p>
           </div>
 
-          {/* Mini stats — all lowercase comparisons */}
+          {/* Mini stats */}
           <div className="stats-mini-grid" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
             gap: 16, marginBottom: 28,
           }}>
             {[
-              { icon: "📋", label: "Total Orders",  value: orders.length,                                              bg: "#f0edff", color: "#8b7fd4" },
-              { icon: "⏳", label: "Pending",        value: orders.filter(o => o.status === "pending").length,         bg: "#fff8ec", color: "#d48a0a" },
-              { icon: "✅", label: "Paid",           value: orders.filter(o => o.status === "paid").length,            bg: "#edfaf4", color: "#1a7a4a" },
-              { icon: "🚚", label: "Delivered",      value: orders.filter(o => o.status === "delivered").length,       bg: "#eff8ff", color: "#1a6fa8" },
-              { icon: "💰", label: "Revenue",        value: `KES ${totalRevenue.toLocaleString()}`,                    bg: "#f3fae8", color: "#5a8a1a" },
+              { icon: "📋", label: "Total Orders", value: orders.length,                                        bg: "#f0edff", color: "#8b7fd4" },
+              { icon: "⏳", label: "Pending",       value: orders.filter(o => o.status === "pending").length,   bg: "#fff8ec", color: "#d48a0a" },
+              { icon: "✅", label: "Paid",          value: orders.filter(o => o.status === "paid").length,      bg: "#edfaf4", color: "#1a7a4a" },
+              { icon: "🚚", label: "Delivered",     value: orders.filter(o => o.status === "delivered").length, bg: "#eff8ff", color: "#1a6fa8" },
+              { icon: "💰", label: "Revenue",       value: `KES ${totalRevenue.toLocaleString()}`,              bg: "#f3fae8", color: "#5a8a1a" },
             ].map((s) => (
               <div className="stat-mini" key={s.label}>
                 <div className="stat-mini-icon" style={{ background: s.bg }}>{s.icon}</div>
@@ -153,7 +162,7 @@ function AdminOrders() {
             ))}
           </div>
 
-          {/* Table */}
+          {/* Table card */}
           <div style={{
             background: "#fff", borderRadius: 20,
             border: "1.5px solid #f0edff",
@@ -182,117 +191,139 @@ function AdminOrders() {
                 No orders found
               </div>
             ) : (
-              <div className="orders-table-wrap">
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#faf9fe" }}>
-                      {["Order ID", "Customer", "Items", "Total", "Status", "Actions"].map((h) => (
-                        <th key={h} style={{
-                          padding: "12px 20px", textAlign: "left", fontSize: 11,
-                          fontWeight: 800, color: "#aaa", textTransform: "uppercase",
-                          letterSpacing: "0.8px", borderBottom: "1.5px solid #f0edff", whiteSpace: "nowrap",
-                        }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((o, i) => {
-                      const st = getStatusStyle(o.status);
-                      const isUpdating = updatingId === o._id;
-                      const statusLower = o.status?.toLowerCase();
+              <>
+                {/* ── Desktop table ── */}
+                <div className="orders-table-wrap">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#faf9fe" }}>
+                        {["Order ID", "Customer", "Items", "Total", "Status", "Actions"].map((h) => (
+                          <th key={h} style={{
+                            padding: "12px 20px", textAlign: "left", fontSize: 11,
+                            fontWeight: 800, color: "#aaa", textTransform: "uppercase",
+                            letterSpacing: "0.8px", borderBottom: "1.5px solid #f0edff", whiteSpace: "nowrap",
+                          }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((o, i) => {
+                        const st = getStatusStyle(o.status);
+                        const isUpdating = updatingId === o._id;
+                        const statusLower = o.status?.toLowerCase();
+                        return (
+                          <tr key={o._id} className="orders-table-row"
+                            style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}>
+                            <td style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "#afa7e7", borderBottom: "1px solid #f5f3ff" }}>
+                              #{o._id?.slice(-6).toUpperCase()}
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>{o.user?.name || "Guest"}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: "#aaa" }}>{o.user?.email}</div>
+                            </td>
+                            <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 700, color: "#666", borderBottom: "1px solid #f5f3ff" }}>
+                              {o.orderItems?.length ?? "—"} item{o.orderItems?.length !== 1 ? "s" : ""}
+                            </td>
+                            <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
+                              KES {(o.totalPrice || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", gap: 6,
+                                background: st.bg, color: st.color, border: `1.5px solid ${st.border}`,
+                                borderRadius: 20, padding: "5px 12px", fontSize: 12, fontWeight: 800,
+                              }}>
+                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.dot, display: "inline-block" }} />
+                                {o.status?.charAt(0).toUpperCase() + o.status?.slice(1)}
+                              </span>
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {statusLower === "pending" && (
+                                  <button className="action-btn btn-paid" disabled={isUpdating} onClick={() => updateStatus(o._id, "paid")}>
+                                    ✅ Mark Paid
+                                  </button>
+                                )}
+                                {statusLower === "paid" && (
+                                  <button className="action-btn btn-deliver" disabled={isUpdating} onClick={() => updateStatus(o._id, "delivered")}>
+                                    🚚 Deliver
+                                  </button>
+                                )}
+                                {statusLower !== "delivered" && statusLower !== "cancelled" && (
+                                  <button className="action-btn btn-cancel" disabled={isUpdating} onClick={() => updateStatus(o._id, "cancelled")}>
+                                    ✕ Cancel
+                                  </button>
+                                )}
+                                {(statusLower === "delivered" || statusLower === "cancelled") && (
+                                  <span style={{ fontSize: 12, color: "#ccc", fontWeight: 700, padding: "7px 4px" }}>No actions</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-                      return (
-                        <tr
-                          key={o._id}
-                          className="orders-table-row"
-                          style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}
-                        >
-                          <td style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "#afa7e7", borderBottom: "1px solid #f5f3ff" }}>
+                {/* ── Mobile cards ── */}
+                <div className="orders-cards-wrap" style={{ flexDirection: "column", gap: 12, padding: 16 }}>
+                  {orders.map((o) => {
+                    const st = getStatusStyle(o.status);
+                    const isUpdating = updatingId === o._id;
+                    const statusLower = o.status?.toLowerCase();
+                    return (
+                      <div className="order-card" key={o._id}>
+                        <div className="order-card-row">
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#afa7e7" }}>
                             #{o._id?.slice(-6).toUpperCase()}
-                          </td>
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>
-                              {o.user?.name || "Guest"}
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#aaa" }}>
-                              {o.user?.email}
-                            </div>
-                          </td>
-                          <td style={{ padding: "14px 20px", fontSize: 13, fontWeight: 700, color: "#666", borderBottom: "1px solid #f5f3ff" }}>
-                            {o.orderItems?.length ?? "—"} item{o.orderItems?.length !== 1 ? "s" : ""}
-                          </td>
-                          <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
-                            KES {(o.totalPrice || 0).toLocaleString()}
-                          </td>
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            <span style={{
-                              display: "inline-flex", alignItems: "center", gap: 6,
-                              background: st.bg, color: st.color,
-                              border: `1.5px solid ${st.border}`,
-                              borderRadius: 20, padding: "5px 12px",
-                              fontSize: 12, fontWeight: 800,
-                            }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.dot, display: "inline-block" }} />
-                              {/* Capitalise first letter for display */}
-                              {o.status?.charAt(0).toUpperCase() + o.status?.slice(1)}
-                            </span>
-                          </td>
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-
-                              {/* Mark Paid — show when pending */}
-                              {statusLower === "pending" && (
-                                <button
-                                  className="action-btn btn-paid"
-                                  disabled={isUpdating}
-                                  onClick={() => updateStatus(o._id, "paid")}
-                                >
-                                  ✅ Mark Paid
-                                </button>
-                              )}
-
-                              {/* Mark Delivered — show when paid */}
-                              {statusLower === "paid" && (
-                                <button
-                                  className="action-btn btn-deliver"
-                                  disabled={isUpdating}
-                                  onClick={() => updateStatus(o._id, "delivered")}
-                                >
-                                  🚚 Deliver
-                                </button>
-                              )}
-
-                              {/* Cancel — show when not yet delivered or cancelled */}
-                              {statusLower !== "delivered" && statusLower !== "cancelled" && (
-                                <button
-                                  className="action-btn btn-cancel"
-                                  disabled={isUpdating}
-                                  onClick={() => updateStatus(o._id, "cancelled")}
-                                >
-                                  ✕ Cancel
-                                </button>
-                              )}
-
-                              {/* No actions */}
-                              {(statusLower === "delivered" || statusLower === "cancelled") && (
-                                <span style={{ fontSize: 12, color: "#ccc", fontWeight: 700, padding: "7px 4px" }}>
-                                  No actions
-                                </span>
-                              )}
-
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </span>
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: st.bg, color: st.color, border: `1.5px solid ${st.border}`,
+                            borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 800,
+                          }}>
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: st.dot, display: "inline-block" }} />
+                            {o.status?.charAt(0).toUpperCase() + o.status?.slice(1)}
+                          </span>
+                        </div>
+                        <div className="order-card-row">
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>{o.user?.name || "Guest"}</div>
+                            <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>{o.user?.email}</div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 15, fontWeight: 900, color: "#2d2640" }}>KES {(o.totalPrice || 0).toLocaleString()}</div>
+                            <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>{o.orderItems?.length ?? 0} item{o.orderItems?.length !== 1 ? "s" : ""}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {statusLower === "pending" && (
+                            <button className="action-btn btn-paid" disabled={isUpdating} onClick={() => updateStatus(o._id, "paid")}>
+                              ✅ Mark Paid
+                            </button>
+                          )}
+                          {statusLower === "paid" && (
+                            <button className="action-btn btn-deliver" disabled={isUpdating} onClick={() => updateStatus(o._id, "delivered")}>
+                              🚚 Deliver
+                            </button>
+                          )}
+                          {statusLower !== "delivered" && statusLower !== "cancelled" && (
+                            <button className="action-btn btn-cancel" disabled={isUpdating} onClick={() => updateStatus(o._id, "cancelled")}>
+                              ✕ Cancel
+                            </button>
+                          )}
+                          {(statusLower === "delivered" || statusLower === "cancelled") && (
+                            <span style={{ fontSize: 12, color: "#ccc", fontWeight: 700 }}>No actions</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
-
         </div>
       </AdminLayout>
     </>

@@ -75,6 +75,8 @@ exports.verifyPayment = async (req, res) => {
       // Update MongoDB order status to "paid" here:
       if (orderId) {
         await Order.findByIdAndUpdate(orderId, {
+          status: "paid",          
+          isPaid: true,  
           paymentStatus: "paid",
           paymentReference: reference,
           paidAt: new Date(),
@@ -132,6 +134,8 @@ exports.webhook = async (req, res) => {
       const orderId = data.metadata?.orderId;
 
       await Order.findByIdAndUpdate(orderId, {
+        status: "paid",
+        isPaid: true,
         paymentStatus: "paid",
         paymentReference: data.reference,
         paymentChannel: data.channel,
