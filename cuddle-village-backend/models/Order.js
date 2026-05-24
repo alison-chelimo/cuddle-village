@@ -52,11 +52,6 @@ const orderSchema = new mongoose.Schema(
       type: Date,
     },
 
-    isPaid: {
-      type: Boolean,
-      default: false,
-    },
-
     isDelivered: {
       type: Boolean,
       default: false,
@@ -64,9 +59,20 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "paid", "processing", "shipped", "delivered", "cancelled"],
-      default: "pending", // Pending → Paid → Delivered
+      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      default: "pending",
     },
+
+    pointsEarned:   { type: Number, default: 0 },
+    pointsRedeemed: { type: Number, default: 0 },
+    pointsDiscount: { type: Number, default: 0 },
+
+    promoCode:      { type: String, default: null },
+    promoDiscount:  { type: Number, default: 0 },
+
+    trackingNumber: { type: String, default: null },
+
+    receiptSent: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

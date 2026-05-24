@@ -2,6 +2,7 @@ const axios = require("axios");
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const { awardLoyaltyPoints } = require("../utils/loyaltyHelper");
+const { sendReceiptEmail } = require("../utils/sendEmail");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY; // sk_live_xxx or sk_test_xxx
 const BASE_URL = "https://api.paystack.co";
@@ -86,6 +87,9 @@ exports.verifyPayment = async (req, res) => {
         order.paidAt           = new Date();
         await order.save();
         await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
+        sendReceiptEmail(safeOrderId).catch(err =>
+          console.error("Receipt email error (verify):", err.message)
+        );
       }
     }
 
@@ -155,12 +159,15 @@ exports.webhook = async (req, res) => {
 
     if (safeOrderId) {
       const order = await Order.findById(safeOrderId);
-      if (order) {
+      if (order && order.paymentStatus !== "paid") {
         order.paymentStatus    = "paid";
         order.paymentReference = data.reference;
         order.paidAt           = new Date(data.paid_at);
         await order.save();
         await awardLoyaltyPoints(order.user, orderId, order.totalPrice);
+        sendReceiptEmail(safeOrderId).catch(err =>
+          console.error("Receipt email error (webhook):", err.message)
+        );
       }
     }
   }

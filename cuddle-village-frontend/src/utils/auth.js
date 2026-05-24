@@ -4,6 +4,7 @@ export const isAuthenticated = () => {
 
 export const logout = () => {
   localStorage.removeItem("token");
+  localStorage.removeItem("user");
   sessionStorage.removeItem("token");
   window.location.href = "/login";
 }; 
