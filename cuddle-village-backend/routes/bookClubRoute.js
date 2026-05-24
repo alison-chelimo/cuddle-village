@@ -1,12 +1,13 @@
-const router = require("express").Router();
-const User = require("../models/User");
-const { createTransporter } = require("../utils/sendEmail");
+const router           = require("express").Router();
+const User             = require("../models/User");
+const { createTransporter }        = require("../utils/sendEmail");
 const { bookClubConfirmationEmail } = require("../utils/emailTemplates");
+const { bookClubLimiter }          = require("../middleware/rateLimiter");
 
 // POST /api/book-club/register
 // Finds the parent's account by email and saves the child + program details.
 // No auth required — looks up by parent.email so non-logged-in parents can also register.
-router.post("/register", async (req, res) => {
+router.post("/register", bookClubLimiter, async (req, res) => {
   try {
     const { child, parent, program } = req.body;
 

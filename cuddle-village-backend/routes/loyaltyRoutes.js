@@ -1,12 +1,14 @@
 const router             = require("express").Router();
+const mongoose           = require("mongoose");
 const { protect }        = require("../middleware/authMiddleware");
+const { loyaltyLimiter } = require("../middleware/rateLimiter");
 const User               = require("../models/User");
 const Order              = require("../models/Order");
 const LoyaltyTransaction = require("../models/LoyaltyTransaction");
 const { calcTier, nextTierInfo, TIERS } = require("../utils/loyaltyHelper");
 
 // GET /api/loyalty/balance
-router.get("/balance", protect, async (req, res) => {
+router.get("/balance", loyaltyLimiter, protect, async (req, res) => {
   const user = await User.findById(req.user._id).select("loyaltyPoints lifetimePoints loyaltyTier");
   res.json({
     points:        user.loyaltyPoints,
@@ -17,7 +19,7 @@ router.get("/balance", protect, async (req, res) => {
 });
 
 // GET /api/loyalty/transactions
-router.get("/transactions", protect, async (req, res) => {
+router.get("/transactions", loyaltyLimiter, protect, async (req, res) => {
   const txns = await LoyaltyTransaction.find({ user: req.user._id })
     .sort({ createdAt: -1 })
     .limit(20)
@@ -28,12 +30,16 @@ router.get("/transactions", protect, async (req, res) => {
 // POST /api/loyalty/redeem
 // Body: { pointsToRedeem, orderId }
 // Called after order creation but before Paystack initialization.
-router.post("/redeem", protect, async (req, res) => {
+router.post("/redeem", loyaltyLimiter, protect, async (req, res) => {
   try {
     const { pointsToRedeem, orderId } = req.body;
 
     if (!pointsToRedeem || !orderId) {
       return res.status(400).json({ message: "pointsToRedeem and orderId are required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: "Invalid order ID" });
     }
 
     const pts = parseInt(pointsToRedeem, 10);
@@ -44,7 +50,8 @@ router.post("/redeem", protect, async (req, res) => {
       return res.status(400).json({ message: "Insufficient points" });
     }
 
-    const order = await Order.findOne({ _id: orderId, user: req.user._id });
+    const safeOrderId = new mongoose.Types.ObjectId(orderId);
+    const order = await Order.findOne({ _id: safeOrderId, user: req.user._id });
     if (!order) return res.status(404).json({ message: "Order not found" });
     if (order.paymentStatus !== "unpaid") {
       return res.status(400).json({ message: "Order already paid" });
