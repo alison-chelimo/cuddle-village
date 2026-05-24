@@ -156,15 +156,17 @@ exports.getOrders = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     const VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
-    if (!VALID_STATUSES.includes(req.body.status)) {
+    const requestedStatus = req.body.status;
+    if (!VALID_STATUSES.includes(requestedStatus)) {
         return res.status(400).json({ message: "Invalid order status" });
     }
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ message: "Invalid order ID" });
     }
+    const safeStatus = requestedStatus;
     const order = await Order.findByIdAndUpdate(
         new mongoose.Types.ObjectId(req.params.id),
-        { status: req.body.status },
+        { status: safeStatus },
         { new: true }
     );
     res.json(order);
