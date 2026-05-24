@@ -148,6 +148,75 @@ describe("Orders page", () => {
     );
   });
 
+  it("shows cancelled message in StatusTimeline when cancelled order is expanded", async () => {
+    API.get.mockResolvedValue({
+      data: [{
+        _id: "abc123def456",
+        status: "cancelled",
+        paymentStatus: "unpaid",
+        totalPrice: 500,
+        createdAt: new Date().toISOString(),
+        orderItems: [],
+      }],
+    });
+    renderOrders();
+    await waitFor(() => expect(document.querySelector(".order-card")).toBeInTheDocument());
+    fireEvent.click(document.querySelector(".order-summary-row"));
+    await waitFor(() =>
+      expect(screen.getByText(/This order was cancelled/i)).toBeInTheDocument()
+    );
+  });
+
+  it("shows copy button for order with tracking number — execCommand fallback path", async () => {
+    document.execCommand = jest.fn().mockReturnValue(true);
+    API.get.mockResolvedValue({
+      data: [{
+        _id: "abc123def456",
+        status: "shipped",
+        paymentStatus: "paid",
+        totalPrice: 2500,
+        createdAt: new Date().toISOString(),
+        trackingNumber: "TRK-KE-12345",
+        orderItems: [{ _id: "i1", name: "Toy Box", qty: 1, price: 2500 }],
+      }],
+    });
+    renderOrders();
+    await waitFor(() => expect(screen.getByText(/2.?500/)).toBeInTheDocument());
+    fireEvent.click(document.querySelector(".order-summary-row"));
+    await waitFor(() => expect(screen.getByText("TRK-KE-12345")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /copy/i }));
+    expect(document.execCommand).toHaveBeenCalledWith("copy");
+    delete document.execCommand;
+  });
+
+  it("copy button uses clipboard API when available", async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+    API.get.mockResolvedValue({
+      data: [{
+        _id: "abc123def456",
+        status: "shipped",
+        paymentStatus: "paid",
+        totalPrice: 2500,
+        createdAt: new Date().toISOString(),
+        trackingNumber: "TRK-KE-99999",
+        orderItems: [],
+      }],
+    });
+    renderOrders();
+    await waitFor(() => expect(screen.getByText(/2.?500/)).toBeInTheDocument());
+    fireEvent.click(document.querySelector(".order-summary-row"));
+    await waitFor(() => expect(screen.getByText("TRK-KE-99999")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /copy/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("TRK-KE-99999"));
+    // cleanup
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true, writable: true });
+  });
+
   it("shows shipping address and payment reference when expanded", async () => {
     API.get.mockResolvedValue({
       data: [

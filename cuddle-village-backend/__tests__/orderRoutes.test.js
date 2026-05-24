@@ -123,59 +123,47 @@ describe("GET /orders — admin", () => {
 
 // ── PUT /orders/:id ───────────────────────────────────────────────────────────
 describe("PUT /orders/:id — update status", () => {
-  it("returns 400 when status is missing", async () => {
-    const res = await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({});
+  const orderId = "6a0ff853cb79317ce83c3480";
+
+  it("returns 400 for an invalid status value", async () => {
+    const res = await request(app).put(`/orders/${orderId}`).send({ status: "paid" });
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/status/i);
+    expect(res.body.message).toMatch(/invalid status/i);
   });
 
   it("returns 404 when order not found", async () => {
-    Order.findByIdAndUpdate.mockResolvedValue(null);
-    const res = await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "delivered" });
+    Order.findById.mockResolvedValue(null);
+    const res = await request(app).put(`/orders/${orderId}`).send({ status: "delivered" });
     expect(res.status).toBe(404);
   });
 
   it("updates order status successfully", async () => {
-    const updatedOrder = { _id: "o1", status: "delivered", isDelivered: true };
-    Order.findByIdAndUpdate.mockResolvedValue(updatedOrder);
-    const res = await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "delivered" });
+    const mockOrder = { _id: orderId, status: "pending", isDelivered: false, save: jest.fn().mockResolvedValue(true) };
+    Order.findById.mockResolvedValue(mockOrder);
+    const res = await request(app).put(`/orders/${orderId}`).send({ status: "shipped" });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe("delivered");
+    expect(mockOrder.status).toBe("shipped");
+    expect(mockOrder.save).toHaveBeenCalled();
   });
 
   it("sets isDelivered=true when status is delivered", async () => {
-    Order.findByIdAndUpdate.mockResolvedValue({ _id: "o1", status: "delivered", isDelivered: true });
-    await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "delivered" });
-    expect(Order.findByIdAndUpdate).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ $set: expect.objectContaining({ isDelivered: true }) }),
-      expect.anything()
-    );
+    const mockOrder = { _id: orderId, status: "shipped", isDelivered: false, save: jest.fn().mockResolvedValue(true) };
+    Order.findById.mockResolvedValue(mockOrder);
+    await request(app).put(`/orders/${orderId}`).send({ status: "delivered" });
+    expect(mockOrder.isDelivered).toBe(true);
   });
 
-  it("sets isPaid and paymentStatus when status is paid", async () => {
-    Order.findByIdAndUpdate.mockResolvedValue({ _id: "o1", status: "paid" });
-    await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "paid" });
-    expect(Order.findByIdAndUpdate).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ $set: expect.objectContaining({ isPaid: true, paymentStatus: "paid" }) }),
-      expect.anything()
-    );
-  });
-
-  it("sets paymentStatus=unpaid when status is cancelled", async () => {
-    Order.findByIdAndUpdate.mockResolvedValue({ _id: "o1", status: "cancelled" });
-    await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "cancelled" });
-    expect(Order.findByIdAndUpdate).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ $set: expect.objectContaining({ paymentStatus: "unpaid" }) }),
-      expect.anything()
-    );
+  it("accepts a missing status and still saves (trackingNumber only update)", async () => {
+    const mockOrder = { _id: orderId, status: "shipped", isDelivered: false, trackingNumber: null, save: jest.fn().mockResolvedValue(true) };
+    Order.findById.mockResolvedValue(mockOrder);
+    const res = await request(app).put(`/orders/${orderId}`).send({ trackingNumber: "TRK-001" });
+    expect(res.status).toBe(200);
+    expect(mockOrder.trackingNumber).toBe("TRK-001");
   });
 
   it("returns 500 on unexpected DB error", async () => {
-    Order.findByIdAndUpdate.mockRejectedValue(new Error("DB crash"));
-    const res = await request(app).put("/orders/6a0ff853cb79317ce83c3480").send({ status: "pending" });
+    Order.findById.mockRejectedValue(new Error("DB crash"));
+    const res = await request(app).put(`/orders/${orderId}`).send({ status: "pending" });
     expect(res.status).toBe(500);
   });
 });
