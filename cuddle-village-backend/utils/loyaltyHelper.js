@@ -32,13 +32,15 @@ function nextTierInfo(lifetimePoints) {
 async function awardLoyaltyPoints(userId, orderId, totalPrice) {
   try {
     if (!mongoose.Types.ObjectId.isValid(orderId) || !mongoose.Types.ObjectId.isValid(userId)) return;
-    const order = await Order.findById(orderId);
+    const safeOrderId = new mongoose.Types.ObjectId(orderId);
+    const safeUserId  = new mongoose.Types.ObjectId(userId);
+    const order = await Order.findById(safeOrderId);
     if (!order || order.pointsEarned > 0) return; // already awarded
 
     const earned = calcPoints(totalPrice);
     if (earned <= 0) return;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(safeUserId);
     if (!user) return;
 
     user.loyaltyPoints  += earned;

@@ -21,14 +21,22 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts. Please wait 15 minutes." },
 });
 
-router.post("/register",        authLimiter,  register);
-router.post("/login",           loginLimiter, login);
-router.post("/verify",          authLimiter,  verifyEmail);
-router.post("/resend",          authLimiter,  resendCode);
-router.post("/forgot-password", authLimiter,  forgotPassword);
-router.post("/reset-password",  authLimiter,  resetPassword);
-router.get("/profile",          protect, getProfile);
-router.put("/profile",          protect, updateProfile);
-router.put("/profile/password", protect, changePassword);
+const profileLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
+router.post("/register",        authLimiter,    register);
+router.post("/login",           loginLimiter,   login);
+router.post("/verify",          authLimiter,    verifyEmail);
+router.post("/resend",          authLimiter,    resendCode);
+router.post("/forgot-password", authLimiter,    forgotPassword);
+router.post("/reset-password",  authLimiter,    resetPassword);
+router.get("/profile",          profileLimiter, protect, getProfile);
+router.put("/profile",          profileLimiter, protect, updateProfile);
+router.put("/profile/password", profileLimiter, protect, changePassword);
 
 module.exports = router; 
