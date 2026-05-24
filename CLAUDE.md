@@ -23,8 +23,8 @@ npm run test:coverage    # Jest with coverage report
 
 ## Sample Credentials
 
-| Role | Email | Password |
-|---|---|---|
+| Role        | Email                             | Password        |
+| ----------- | --------------------------------- | --------------- |
 | Admin | `admin@cuddlevillage.com` | `Admin@1234` |
 | Facilitator | `facilitator@cuddlevillage.com` | `Facilitator@1` |
 | Customer | `jane@cuddlevillage.com` | `User@12345` |
@@ -58,19 +58,23 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ### Rate limiting (`middleware/rateLimiter.js`)
 
-| Limiter | Limit | Applied to |
-|---|---|---|
-| `adminLimiter` | 200 req / 15 min | admin routes |
-| `orderLimiter` | 60 req / 15 min | order routes |
-| `portalLimiter` | 200 req / 15 min | portal routes |
-| `paystackLimiter` | 60 req / 15 min | paystack routes |
+| Limiter           | Limit            | Applied to          |
+| ----------------- | ---------------- | ------------------- |
+| `adminLimiter`    | 200 req / 15 min | admin routes        |
+| `orderLimiter`    | 60 req / 15 min  | order routes        |
+| `portalLimiter`   | 200 req / 15 min | portal routes       |
+| `paystackLimiter` | 60 req / 15 min  | paystack routes     |
+| `loyaltyLimiter`  | 60 req / 15 min  | loyalty routes      |
+| `productLimiter`  | 200 req / 15 min | product routes      |
+| `bookClubLimiter` | 20 req / 15 min  | book club routes    |
+| `profileLimiter`  | 100 req / 15 min | auth profile routes |
 
 ### Backend route map
 
 **Auth (`routes/authRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/auth/register` | public |
 | `POST /api/auth/login` | public |
 | `POST /api/auth/verify` | public |
@@ -84,7 +88,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Products (`routes/productRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `GET /api/products` | public |
 | `POST /api/products` | admin |
 | `PUT /api/products/:id` | admin |
@@ -93,7 +97,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Orders (`routes/orderRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/orders` | user |
 | `GET /api/orders/my` | user |
 | `GET /api/orders` | admin |
@@ -102,7 +106,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Admin (`routes/adminRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `GET /api/admin/users` | admin |
 | `POST /api/admin/users` | admin — create account |
 | `PUT /api/admin/users/:id/role` | admin — change role |
@@ -120,13 +124,13 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Book Club (`routes/bookClubRoute.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/book-club/register` | public — parent registers child |
 
 **Loyalty (`routes/loyaltyRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `GET /api/loyalty/balance` | user |
 | `GET /api/loyalty/transactions` | user — last 20 |
 | `POST /api/loyalty/redeem` | user — redeem points for discount |
@@ -134,7 +138,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Portal (`routes/portalRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `GET /api/portal/hub-content/:group` | public |
 | `GET /api/portal/my-child` | user |
 | `GET /api/portal/upcoming-session` | user |
@@ -161,13 +165,13 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Promo (`routes/promoRoutes.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/promo/validate` | public |
 
 **Paystack (`routes/paystackRoute.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/paystack/initialize` | user |
 | `GET /api/paystack/verify/:reference` | user |
 | `POST /api/paystack/webhook` | Paystack (HMAC) — mounted before `express.json()` |
@@ -175,7 +179,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 **Contact (`routes/contactRoute.js`)**
 
 | Endpoint | Auth |
-|---|---|
+| -------- | ---- |
 | `POST /api/contact` | public |
 
 ### Auth flow
@@ -188,7 +192,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Login redirects
 
 | Role | Redirect |
-|---|---|
+| ---- | -------- |
 | `admin` | `/admin/admin-dashboard` |
 | `facilitator` | `/facilitator/dashboard` |
 | `user` with book club | `/early-learners` or `/growing-readers` |
@@ -234,7 +238,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 All facilitator routes use `FacilitatorRoute` (admin or facilitator role) and `FacilitatorLayout`:
 
 | Route | Component | Purpose |
-|---|---|---|
+| ----- | --------- | ------- |
 | `/facilitator/dashboard` | `FacilitatorDashboard` | Summary: enrolled children, upcoming sessions, books to cover |
 | `/facilitator/children` | `Children` | List enrolled children |
 | `/facilitator/children/:id` | `ChildProfile` | Child detail, attendance, progress notes |

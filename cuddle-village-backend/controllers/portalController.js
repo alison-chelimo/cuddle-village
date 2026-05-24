@@ -42,7 +42,10 @@ exports.getEnrolled = async (req, res) => {
 };
 
 exports.getSessions = async (req, res) => {
-  const filter = req.query.group ? { group: req.query.group } : {};
+  const VALID_GROUPS = ["early-learners", "growing-readers"];
+  const filter = req.query.group && VALID_GROUPS.includes(req.query.group)
+    ? { group: { $eq: req.query.group } }
+    : {};
   const sessions = await LearningSession.find(filter)
     .sort({ date: -1 })
     .populate("attendees", "name email bookClub");
@@ -59,7 +62,23 @@ exports.createSession = async (req, res) => {
 };
 
 exports.updateSession = async (req, res) => {
-  const session = await LearningSession.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).json({ message: "Session not found" });
+  }
+  const { date, group, title, bookTitle, bookAuthor, activityDescription, facilitatorNotes } = req.body;
+  const update = {};
+  if (date                !== undefined) update.date                = date;
+  if (group               !== undefined) update.group               = group;
+  if (title               !== undefined) update.title               = title;
+  if (bookTitle           !== undefined) update.bookTitle           = bookTitle;
+  if (bookAuthor          !== undefined) update.bookAuthor          = bookAuthor;
+  if (activityDescription !== undefined) update.activityDescription = activityDescription;
+  if (facilitatorNotes    !== undefined) update.facilitatorNotes    = facilitatorNotes;
+  const session = await LearningSession.findByIdAndUpdate(
+    new mongoose.Types.ObjectId(req.params.id),
+    update,
+    { new: true }
+  );
   if (!session) return res.status(404).json({ message: "Session not found" });
   res.json(session);
 };
@@ -67,10 +86,13 @@ exports.updateSession = async (req, res) => {
 exports.markAttendance = async (req, res) => {
   try {
     const { userId, attended } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
     const session = await LearningSession.findById(req.params.id);
     if (!session) return res.status(404).json({ message: "Session not found" });
 
-    const user = await User.findById(userId);
+    const user = await User.findById(new mongoose.Types.ObjectId(userId));
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (attended) {
@@ -128,7 +150,26 @@ exports.createHubContent = async (req, res) => {
 };
 
 exports.updateHubContent = async (req, res) => {
-  const item = await HubContent.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).json({ message: "Content not found" });
+  }
+  const { group, contentType, title, author, emoji, tag, description, weekLabel, isActive, order } = req.body;
+  const update = {};
+  if (group       !== undefined) update.group       = group;
+  if (contentType !== undefined) update.contentType = contentType;
+  if (title       !== undefined) update.title       = title;
+  if (author      !== undefined) update.author      = author;
+  if (emoji       !== undefined) update.emoji       = emoji;
+  if (tag         !== undefined) update.tag         = tag;
+  if (description !== undefined) update.description = description;
+  if (weekLabel   !== undefined) update.weekLabel   = weekLabel;
+  if (isActive    !== undefined) update.isActive    = isActive;
+  if (order       !== undefined) update.order       = order;
+  const item = await HubContent.findByIdAndUpdate(
+    new mongoose.Types.ObjectId(req.params.id),
+    update,
+    { new: true }
+  );
   if (!item) return res.status(404).json({ message: "Content not found" });
   res.json(item);
 };
