@@ -90,32 +90,26 @@ router.get("/", protect, adminOnly, async (req, res) => {
 // =============================
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
+    const VALID_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
     const newStatus = req.body.status?.toLowerCase();
-    if (!newStatus) return res.status(400).json({ message: "Status is required" });
 
-    const updateFields = { status: newStatus };
-
-    if (newStatus === "paid") {
-      updateFields.isPaid = true;
-      updateFields.paymentStatus = "paid";
-      updateFields.paidAt = new Date();
-    }
-    if (newStatus === "delivered") {
-      updateFields.isDelivered = true;
-    }
-    if (newStatus === "cancelled") {
-      updateFields.paymentStatus = "unpaid";
+    if (newStatus && !VALID_STATUSES.includes(newStatus)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` });
     }
 
-    const updated = await Order.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true, runValidators: false } // ← skips full doc validation
-    );
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (!updated) return res.status(404).json({ message: "Order not found" });
+    if (newStatus) order.status = newStatus;
 
-    res.json(updated);
+    if (req.body.trackingNumber !== undefined) {
+      order.trackingNumber = req.body.trackingNumber || null;
+    }
+
+    if (order.status === "delivered") order.isDelivered = true;
+
+    await order.save();
+    res.json(order);
   } catch (err) {
     console.error("❌ Order update error:", err.message);
     res.status(500).json({ message: err.message });
