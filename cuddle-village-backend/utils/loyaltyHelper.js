@@ -1,3 +1,4 @@
+const mongoose           = require("mongoose");
 const User               = require("../models/User");
 const Order              = require("../models/Order");
 const LoyaltyTransaction = require("../models/LoyaltyTransaction");
@@ -30,6 +31,7 @@ function nextTierInfo(lifetimePoints) {
 // when both webhook and verifyPayment fire for the same order.
 async function awardLoyaltyPoints(userId, orderId, totalPrice) {
   try {
+    if (!mongoose.Types.ObjectId.isValid(orderId) || !mongoose.Types.ObjectId.isValid(userId)) return;
     const order = await Order.findById(orderId);
     if (!order || order.pointsEarned > 0) return; // already awarded
 

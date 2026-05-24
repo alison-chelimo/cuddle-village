@@ -17,12 +17,12 @@ function makeApp() {
   const app = express();
   app.use(express.json());
   app.post("/initialize", controller.initializePayment);
-  app.get("/verify/:reference", controller.verifyPayment);
+  app.get("/verify/:reference", controller.verifyPayment); // codeql[js/missing-rate-limiting] - test harness only; production route uses paystackLimiter
   app.post("/webhook", express.raw({ type: "application/json" }), (req, res, next) => {
     // supertest sends JSON — re-stringify for HMAC consistency in tests
     if (Buffer.isBuffer(req.body)) req.body = JSON.parse(req.body.toString());
     next();
-  }, controller.webhook);
+  }, controller.webhook); // codeql[js/missing-rate-limiting] - test harness only; production route uses paystackLimiter
   return app;
 }
 
