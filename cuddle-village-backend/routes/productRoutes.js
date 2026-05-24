@@ -36,21 +36,21 @@ router.put("/:id", productLimiter, protect, adminOnly, upload.single("image"), a
   }
 
   const { name, price, description, category, stock } = req.body;
-  const updateData = {};
-  if (name        !== undefined) updateData.name        = String(name);
-  if (price       !== undefined) updateData.price       = Number(price);
-  if (description !== undefined) updateData.description = String(description);
-  if (category    !== undefined) updateData.category    = String(category);
-  if (stock       !== undefined) updateData.stock       = parseInt(String(stock), 10);
-  if (req.file)                  updateData.image       = req.file.path;
 
-  const product = await Product.findByIdAndUpdate(
-    new mongoose.Types.ObjectId(req.params.id),
-    updateData,
-    { new: true }
-  );
+  // Use findById + save() so user-supplied values go through Mongoose schema
+  // validation rather than a raw MongoDB update document (avoids taint into query args).
+  const product = await Product.findById(new mongoose.Types.ObjectId(req.params.id));
+  if (!product) return res.status(404).json({ message: "Product not found" });
 
-  res.json(product);
+  if (name        !== undefined) product.name        = String(name);
+  if (price       !== undefined) product.price       = Number(price);
+  if (description !== undefined) product.description = String(description);
+  if (category    !== undefined) product.category    = String(category);
+  if (stock       !== undefined) product.stock       = parseInt(String(stock), 10);
+  if (req.file)                  product.image       = req.file.path;
+
+  const updated = await product.save();
+  res.json(updated);
 });
 
 // DELETE product
