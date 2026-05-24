@@ -266,7 +266,8 @@ exports.getChildById = async (req, res) => {
 exports.getChildAttendance = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ message: "Child not found" });
-    const user = await User.findById(new mongoose.Types.ObjectId(req.params.id))
+    const safeId = new mongoose.Types.ObjectId(req.params.id);
+    const user = await User.findOne({ _id: { $eq: safeId } })
       .select("name bookClub.sessionsAttended")
       .populate("bookClub.sessionsAttended", "date title bookTitle group");
     if (!user) return res.status(404).json({ message: "Child not found" });
