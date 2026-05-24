@@ -81,14 +81,46 @@ exports.updateSession = async (req, res) => {
     return res.status(404).json({ message: "Session not found" });
   }
   const { date, group, title, bookTitle, bookAuthor, activityDescription, facilitatorNotes } = req.body;
+  const VALID_GROUPS = ["early-learners", "growing-readers"];
+  const isStringField = (value) => typeof value === "string";
+
   const update = {};
-  if (date                !== undefined) update.date                = date;
-  if (group               !== undefined) update.group               = group;
-  if (title               !== undefined) update.title               = title;
-  if (bookTitle           !== undefined) update.bookTitle           = bookTitle;
-  if (bookAuthor          !== undefined) update.bookAuthor          = bookAuthor;
-  if (activityDescription !== undefined) update.activityDescription = activityDescription;
-  if (facilitatorNotes    !== undefined) update.facilitatorNotes    = facilitatorNotes;
+
+  if (date !== undefined) {
+    if (!isStringField(date)) return res.status(400).json({ message: "Invalid date" });
+    update.date = date;
+  }
+  if (group !== undefined) {
+    if (!isStringField(group) || !VALID_GROUPS.includes(group)) {
+      return res.status(400).json({ message: "Invalid group" });
+    }
+    update.group = group;
+  }
+  if (title !== undefined) {
+    if (!isStringField(title)) return res.status(400).json({ message: "Invalid title" });
+    update.title = title;
+  }
+  if (bookTitle !== undefined) {
+    if (!isStringField(bookTitle)) return res.status(400).json({ message: "Invalid bookTitle" });
+    update.bookTitle = bookTitle;
+  }
+  if (bookAuthor !== undefined) {
+    if (!isStringField(bookAuthor)) return res.status(400).json({ message: "Invalid bookAuthor" });
+    update.bookAuthor = bookAuthor;
+  }
+  if (activityDescription !== undefined) {
+    if (!isStringField(activityDescription)) {
+      return res.status(400).json({ message: "Invalid activityDescription" });
+    }
+    update.activityDescription = activityDescription;
+  }
+  if (facilitatorNotes !== undefined) {
+    if (!isStringField(facilitatorNotes)) {
+      return res.status(400).json({ message: "Invalid facilitatorNotes" });
+    }
+    update.facilitatorNotes = facilitatorNotes;
+  }
+
   const session = await LearningSession.findByIdAndUpdate(
     new mongoose.Types.ObjectId(req.params.id),
     update,
