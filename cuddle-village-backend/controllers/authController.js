@@ -31,13 +31,26 @@ exports.register = async (req, res) => {
         bookClub.group = getGroup(bookClub.childAge);
       }
 
+    const safeBookClub = bookClub ? {
+      childName:        bookClub.childName        ? String(bookClub.childName)        : undefined,
+      childAge:         bookClub.childAge         ? parseInt(String(bookClub.childAge), 10) || undefined : undefined,
+      dob:              bookClub.dob              ? String(bookClub.dob)              : undefined,
+      school:           bookClub.school           ? String(bookClub.school)           : undefined,
+      allergies:        bookClub.allergies        ? String(bookClub.allergies)        : undefined,
+      specialNeeds:     bookClub.specialNeeds     ? String(bookClub.specialNeeds)     : undefined,
+      emergencyContact: bookClub.emergencyContact ? String(bookClub.emergencyContact) : undefined,
+      schedule:         bookClub.schedule         ? String(bookClub.schedule)         : undefined,
+      plan:             bookClub.plan             ? String(bookClub.plan)             : undefined,
+      group:            bookClub.group,
+    } : undefined;
+
     const user = await User.create({
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      phone,
+      name:             String(name),
+      email:            email.toLowerCase(),
+      password:         hashedPassword,
+      phone:            phone ? String(phone) : undefined,
       verificationCode: code,
-      ...User(bookClub && { bookClub })
+      ...(safeBookClub ? { bookClub: safeBookClub } : {}),
     });
 
   
