@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+import useToast from "../hooks/useToast";
+import Toast from "../components/Toast";
 
 function Verify() {
   const [email, setEmail] = useState(localStorage.getItem("verifyEmail") || "");
   const [code, setCode] = useState("");
-
-  // redirect after success
   const navigate = useNavigate();
+  const { toasts, toast, dismissToast } = useToast();
+
   const handleVerify = async () => {
     try {
       const res = await API.post("/auth/verify", { email, code });
-      alert(res.data.message || "Verified!");
+      toast.success(res.data.message || "Account verified! Redirecting…");
 
       const { token, user } = res.data;
 
@@ -49,16 +51,16 @@ function Verify() {
       
     } catch (err) {
       const message = err.response?.data?.message || "Verification failed";
-      alert(message);
+      toast.error(message);
     }
   };
 
   const handleResend = async () => {
     try {
       const res = await API.post("/auth/resend", { email });
-      alert(res.data.message);
-    } catch (err) {
-      alert("Failed to resend code");
+      toast.success(res.data.message || "Verification code resent.");
+    } catch {
+      toast.error("Failed to resend code. Please try again.");
     }
   };
 
@@ -186,8 +188,14 @@ function Verify() {
           font-weight: 800;
           text-decoration: none;
         }
+        .resend-btn {
+          background: none; border: none; padding: 0; cursor: pointer;
+          color: #8b7fd4; font-weight: 800; text-decoration: underline;
+          font-family: 'Nunito', sans-serif; font-size: 13px;
+        }
       `}</style>
 
+      <Toast toasts={toasts} onDismiss={dismissToast} />
       <div className="verify-page">
         <div className="verify-card">
           <span className="verify-icon">📬</span>
@@ -219,7 +227,7 @@ function Verify() {
           </button>
 
           <div className="resend-link">
-            Didn't get the code? <a href="#" onClick={handleResend}>Resend</a>
+            Didn't get the code? <button className="resend-btn" onClick={handleResend}>Resend</button>
           </div>
         </div>
       </div>

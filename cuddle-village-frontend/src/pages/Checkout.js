@@ -1,22 +1,71 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { CartContext } from "../context/CartContext";
+import { useLoyalty } from "../context/LoyaltyContext";
+import { isAuthenticated } from "../utils/auth";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
 
 // Paystack inline JS is loaded once via a <script> tag in public/index.html:
 // <script src="https://js.paystack.co/v1/inline.js"></script>
 
 function Checkout() {
   const { cart, clearCart } = useContext(CartContext);
-  const navigate = useNavigate();
+  const { points, refresh: refreshLoyalty } = useLoyalty();
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
+  // Pre-fill from localStorage (name + email always present after login)
+  const stored = JSON.parse(localStorage.getItem("user") || "{}");
+  const [form, setForm] = useState({
+    name:    stored.name  || "",
+    email:   stored.email || "",
+    phone:   stored.phone || "",
+    address: "",
+    city:    "",
+  });
+  const [prefilled, setPrefilled] = useState(!!(stored.name || stored.email));
+
+  // Fetch full profile to get phone number (not always in the token payload)
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    API.get("/auth/profile").then(({ data }) => {
+      setForm(f => ({
+        ...f,
+        name:  f.name  || data.name  || "",
+        email: f.email || data.email || "",
+        phone: f.phone || data.phone || "",
+      }));
+      if (data.name || data.email) setPrefilled(true);
+    }).catch(() => {});
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [pointsInput, setPointsInput]       = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [redeemError, setRedeemError]        = useState("");
+
+  const [promoInput,    setPromoInput]    = useState("");
+  const [promoApplied,  setPromoApplied]  = useState(null); // { code, discount, message }
+  const [promoError,    setPromoError]    = useState("");
+  const [promoLoading,  setPromoLoading]  = useState(false);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartTotal   = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const promoDiscount = promoApplied?.discount || 0;
+  const total         = Math.max(0, cartTotal - appliedDiscount - promoDiscount);
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const res = await API.post("/promo/validate", { code: promoInput.trim(), orderAmount: cartTotal - appliedDiscount });
+      setPromoApplied({ code: res.data.code, discount: res.data.discount, message: res.data.message });
+      setPromoInput("");
+    } catch (err) {
+      setPromoError(err.response?.data?.message || "Invalid promo code.");
+    }
+    setPromoLoading(false);
+  };
 
   // ── Main checkout flow ──────────────────────────────────────────────────────
   const handleCheckout = async () => {
@@ -44,28 +93,44 @@ function Checkout() {
         shippingAddress: { address: form.address, phone: form.phone, city: form.city || "" },
         totalPrice: total,
         paymentMethod: "paystack",
+        promoCode: promoApplied?.code || null,
       });
 
       const order = orderRes.data;
       if (!order?._id) throw new Error("Order creation failed");
 
-      // 2. Ask your backend to initialise a Paystack transaction
+      // 2. Apply loyalty points redemption if requested
+      let finalAmount = total;
+      if (pointsInput && parseInt(pointsInput, 10) > 0) {
+        try {
+          const redeemRes = await API.post("/loyalty/redeem", {
+            pointsToRedeem: parseInt(pointsInput, 10),
+            orderId: order._id,
+          });
+          finalAmount = redeemRes.data.newTotal;
+          refreshLoyalty();
+        } catch (redeemErr) {
+          // Non-fatal — proceed with original total
+          console.warn("Points redemption skipped:", redeemErr.response?.data?.message);
+        }
+      }
+
+      // 3. Ask your backend to initialise a Paystack transaction
       const paystackRes = await API.post("/paystack/initialize", {
         email: form.email,
-        amount: total,
+        amount: finalAmount,
         orderId: order._id,
-        // Your frontend's success redirect (Paystack also calls your webhook)
         callbackUrl: `${window.location.origin}/order-success?orderId=${order._id}`,
       });
 
-      const { authorization_url, reference } = paystackRes.data;
+      const { authorization_url } = paystackRes.data;
       if (!authorization_url) throw new Error("Could not get Paystack authorization URL");
 
       setLoading(false);
+      clearCart();
 
-      // 3. Open Paystack popup (requires inline.js loaded in <head>)
-      //    Supports: card, M-Pesa (mobile_money), bank transfer, USSD — all in one popup.
-    window.location.href = authorization_url;
+      // Redirect to Paystack hosted payment page
+      window.location.href = authorization_url;
     } catch (err) {
       console.error("Checkout error:", err);
       setError(err.response?.data?.message || err.message || "Checkout failed. Please try again.");
@@ -301,6 +366,12 @@ function Checkout() {
 
             {error && <div className="error-banner">⚠️ {error}</div>}
 
+            {prefilled && (
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, fontWeight: 600, color: "#166534", display: "flex", alignItems: "center", gap: 8 }}>
+                ✅ Details pre-filled from your profile — edit below if needed.
+              </div>
+            )}
+
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Full Name *</label>
@@ -401,7 +472,102 @@ function Checkout() {
             )}
 
             <div className="summary-divider" />
- 
+
+            {/* ── Loyalty redemption ── */}
+            {isAuthenticated() && points > 0 && (
+              <div style={{ background: "#faf9fe", border: "1.5px solid #e8e4f8", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#8b7fd4", marginBottom: 8 }}>
+                  ★ You have <strong>{points.toLocaleString()}</strong> points (worth KES {Math.floor(points / 2).toLocaleString()})
+                </div>
+                {appliedDiscount > 0 ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#16a34a" }}>✅ KES {appliedDiscount} discount applied</span>
+                    <button type="button" onClick={() => { setAppliedDiscount(0); setPointsInput(""); }} style={{ fontSize: 12, color: "#c0392b", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}>Remove</button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max={points}
+                      value={pointsInput}
+                      onChange={e => { setPointsInput(e.target.value); setRedeemError(""); }}
+                      placeholder={`Up to ${points} pts`}
+                      style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e8e4f8", fontSize: 13, fontFamily: "Nunito, sans-serif", fontWeight: 600 }}
+                    />
+                    <button type="button"
+                      onClick={() => {
+                        const pts = parseInt(pointsInput, 10);
+                        if (!pts || pts <= 0) return setRedeemError("Enter a valid amount.");
+                        if (pts > points) return setRedeemError("Not enough points.");
+                        setAppliedDiscount(Math.round(pts / 2));
+                        setRedeemError("");
+                      }}
+                      style={{ padding: "8px 16px", background: "linear-gradient(135deg,#C3B1E1,#afa7e7)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "Nunito, sans-serif" }}>
+                      Apply
+                    </button>
+                  </div>
+                )}
+                {redeemError && <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "6px 0 0" }}>{redeemError}</p>}
+              </div>
+            )}
+
+            {appliedDiscount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#16a34a", marginBottom: 8 }}>
+                <span>Points discount</span>
+                <span>− KES {appliedDiscount}</span>
+              </div>
+            )}
+
+            {/* ── Promo code ── */}
+            <div style={{ background: "#faf9fe", border: "1.5px solid #e8e4f8", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#8b7fd4", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                🏷️ Promo Code
+              </div>
+              {promoApplied ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "#16a34a" }}>✅ {promoApplied.message}</span>
+                    <div style={{ fontSize: 11, color: "#aaa", fontWeight: 600, marginTop: 2 }}>Code: <strong>{promoApplied.code}</strong></div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPromoApplied(null)}
+                    style={{ fontSize: 12, color: "#c0392b", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}
+                  >Remove</button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      value={promoInput}
+                      onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                      onKeyDown={e => e.key === "Enter" && handleApplyPromo()}
+                      placeholder="Enter promo code"
+                      style={{ flex: 1, padding: "8px 12px", borderRadius: 10, border: "1.5px solid #e8e4f8", fontSize: 13, fontFamily: "Nunito, sans-serif", fontWeight: 700, letterSpacing: "0.5px", background: "#fff", textTransform: "uppercase" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoInput.trim()}
+                      style={{ padding: "8px 16px", background: "linear-gradient(135deg,#C3B1E1,#afa7e7)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "Nunito, sans-serif", opacity: promoLoading ? 0.65 : 1 }}
+                    >
+                      {promoLoading ? "…" : "Apply"}
+                    </button>
+                  </div>
+                  {promoError && <p style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, margin: "6px 0 0" }}>⚠️ {promoError}</p>}
+                </>
+              )}
+            </div>
+
+            {promoDiscount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, color: "#16a34a", marginBottom: 8 }}>
+                <span>🏷️ Promo discount ({promoApplied?.code})</span>
+                <span>− KES {promoDiscount.toLocaleString()}</span>
+              </div>
+            )}
+
             <div className="summary-total">
               <span>Total</span>
               <span>KES {total.toLocaleString()}</span>

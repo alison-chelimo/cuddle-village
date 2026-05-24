@@ -1,7 +1,13 @@
+const mongoose = require("mongoose");
 const router = require("express").Router();
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const PromoCode = require("../models/PromoCode");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
+const { resolvePromo } = require("../controllers/promoController");
+const { orderLimiter } = require("../middleware/rateLimiter");
+
+router.use(orderLimiter);
 
 
 // =============================
@@ -9,36 +15,49 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 // =============================
 router.post("/", protect, async (req, res) => {
   try {
-    const { orderItems, shippingAddress, totalPrice } = req.body;
+    const { orderItems, shippingAddress, totalPrice, promoCode } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ message: "No items in order" });
     }
 
-    // 🔥 STOCK CHECK + REDUCTION
+    // Stock check + reduction
     for (let item of orderItems) {
-      const product = await Product.findById(item.product);
-
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+      if (!mongoose.Types.ObjectId.isValid(item.product)) {
+        return res.status(400).json({ message: "Invalid product ID" });
       }
-
-      if (product.stock < item.qty) {
-        return res.status(400).json({
-          message: `${product.name} is out of stock`,
-        });
-      }
-
-      // 🔻 REDUCE STOCK
+      const product = await Product.findById(new mongoose.Types.ObjectId(item.product));
+      if (!product) return res.status(404).json({ message: "Product not found" });
+      if (product.stock < item.qty) return res.status(400).json({ message: `${product.name} is out of stock` });
       product.stock -= item.qty;
       await product.save();
     }
+
+    // Validate promo code if provided
+    let promoDiscount = 0;
+    let promoId       = null;
+    let appliedCode   = null;
+
+    if (promoCode) {
+      const promoResult = await resolvePromo(promoCode, totalPrice);
+      if (promoResult.valid) {
+        promoDiscount = promoResult.discount;
+        promoId       = promoResult.promo._id;
+        appliedCode   = promoResult.promo.code;
+        // Increment usage count
+        await PromoCode.findByIdAndUpdate(promoId, { $inc: { usageCount: 1 } });
+      }
+    }
+
+    const finalTotal = Math.max(0, totalPrice - promoDiscount);
 
     const order = await Order.create({
       user: req.user._id,
       orderItems,
       shippingAddress,
-      totalPrice,
+      totalPrice: finalTotal,
+      promoCode:     appliedCode,
+      promoDiscount,
     });
 
     res.status(201).json(order);

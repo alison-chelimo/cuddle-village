@@ -19,25 +19,33 @@ function EditProduct() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
-  useEffect(() => { fetchProduct(); }, []);
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await API.get(`/products/${id}`);
+        setForm({
+          name: res.data.name || "",
+          price: res.data.price || "",
+          description: res.data.description || "",
+          category: res.data.category || "",
+          stock: res.data.stock || "",
+          image: res.data.image || "",
+        });
+      } catch (err) {
+        console.error(err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
 
-  const fetchProduct = async () => {
-    try {
-      const res = await API.get(`/products/${id}`);
-      setForm({
-        name: res.data.name || "",
-        price: res.data.price || "",
-        description: res.data.description || "",
-        category: res.data.category || "",
-        stock: res.data.stock || "",
-        image: res.data.image || "",
-      });
-    } catch (err) {
-      console.error(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = async (e) => {
