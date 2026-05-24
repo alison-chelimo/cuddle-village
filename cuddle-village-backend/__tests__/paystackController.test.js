@@ -6,6 +6,7 @@ const axios   = require("axios");
 const crypto  = require("crypto");
 const request = require("supertest");
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const Order   = require("../models/Order");
 const { awardLoyaltyPoints } = require("../utils/loyaltyHelper");
 const controller = require("../controllers/paystackController");
@@ -15,14 +16,18 @@ const SECRET = process.env.PAYSTACK_SECRET_KEY;
 // Build a minimal Express app using the controller directly
 function makeApp() {
   const app = express();
+  const paystackLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10000, // keep high for test stability while satisfying rate-limit presence
+  });
   app.use(express.json());
   app.post("/initialize", controller.initializePayment);
-  app.get("/verify/:reference", controller.verifyPayment); // codeql[js/missing-rate-limiting] - test harness only; production route uses paystackLimiter
-  app.post("/webhook", express.raw({ type: "application/json" }), (req, res, next) => {
+  app.get("/verify/:reference", paystackLimiter, controller.verifyPayment);
+  app.post("/webhook", paystackLimiter, express.raw({ type: "application/json" }), (req, res, next) => {
     // supertest sends JSON — re-stringify for HMAC consistency in tests
     if (Buffer.isBuffer(req.body)) req.body = JSON.parse(req.body.toString());
     next();
-  }, controller.webhook); // codeql[js/missing-rate-limiting] - test harness only; production route uses paystackLimiter
+  }, controller.webhook);
   return app;
 }
 
