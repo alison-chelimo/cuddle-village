@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import API from "../services/api";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import useToast from "../hooks/useToast";
+import Toast from "../components/Toast";
 
 function Login() {
   const navigate = useNavigate();
+  const { toasts, toast } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -35,12 +39,16 @@ function Login() {
         navigate("/admin/admin-dashboard");
       }
 
+      else if (user.role === "facilitator") {
+        navigate("/facilitator/dashboard");
+      }
+
       // Book club groups
       else if (group === "early-learners") {
-        navigate("/book-club/early-learners");
+        navigate("/early-learners");
       }
       else if (group === "growing-readers") {
-        navigate("/book-club/growing-readers");
+        navigate("/growing-readers");
       }
       else if (group === "group3") {
         navigate("/book-club/group3");
@@ -55,11 +63,8 @@ function Login() {
       else {
         navigate("/");
       }
-    } catch (err) {  
-      console.log(err.response);
-      console.log(err.response?.data);
-      const message = err.response?.data?.message || "Login failed";
-      alert(message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -67,6 +72,7 @@ function Login() {
 
   return (
     <>
+      <Toast toasts={toasts} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
@@ -233,6 +239,17 @@ function Login() {
         }
         .forgot-link:hover { text-decoration: underline; }
 
+        .input-wrap { position: relative; }
+        .input-wrap .form-input { padding-right: 44px; }
+        .eye-btn {
+          position: absolute; right: 13px; top: 50%;
+          transform: translateY(-50%);
+          background: none; border: none; cursor: pointer;
+          color: #bbb; padding: 0; display: flex; align-items: center;
+          transition: color 0.2s;
+        }
+        .eye-btn:hover { color: #8b7fd4; }
+
         .submit-btn {
           width: 100%;
           padding: 15px;
@@ -356,14 +373,19 @@ function Login() {
 
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="form-input"
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-wrap">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="form-input"
+                    onChange={handleChange}
+                    required
+                  />
+                  <button type="button" className="eye-btn" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="form-extras">

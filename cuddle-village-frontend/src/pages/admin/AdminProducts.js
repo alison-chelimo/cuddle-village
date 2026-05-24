@@ -1,39 +1,43 @@
 import React, { useEffect, useState } from "react";
 import API from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
+import ConfirmModal from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 
 function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, productId: null, productName: "" });
   const navigate = useNavigate();
 
   useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = async () => {
-    try {
-      const res = await API.get("/products");
-      const normalized = res.data.map((p) => ({
-        ...p, stock: p.stock ?? 0, price: p.price ?? 0,
-      }));
-      setProducts(normalized);
-    } catch (err) {
-      console.error(err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const res = await API.get("/products");
+    // Normalize missing stock/price so comparisons work correctly
+    const normalized = res.data.map((p) => ({
+      ...p,
+      stock: p.stock ?? 0,
+      price: p.price ?? 0,
+    }));
+    setProducts(normalized);     
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const deleteProduct = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+  const handleConfirmDelete = async () => {
     try {
-      await API.delete(`/products/${id}`);
+      await API.delete(`/products/${deleteConfirm.productId}`);
       fetchProducts();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteConfirm({ open: false, productId: null, productName: "" });
     }
   };
 
@@ -215,117 +219,134 @@ function AdminProducts() {
                 {search ? "No products match your search" : "No products found"}
               </div>
             ) : (
-              <>
-                {/* ── Desktop table ── */}
-                <div className="products-table-wrap">
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ background: "#faf9fe" }}>
-                        {["Product", "Category", "Price", "Stock", "Actions"].map((h) => (
-                          <th key={h} style={{
-                            padding: "12px 20px", textAlign: "left", fontSize: 11,
-                            fontWeight: 800, color: "#aaa", textTransform: "uppercase",
-                            letterSpacing: "0.8px", borderBottom: "1.5px solid #f0edff", whiteSpace: "nowrap",
-                          }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((p, i) => {
-                        const stockLow = p.stock <= 5 && p.stock > 0;
-                        const stockOut = p.stock === 0;
-                        return (
-                          <tr key={p._id} className="products-table-row"
-                            style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}>
-                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                {p.image
-                                  ? <img src={p.image} alt={p.name} className="product-img" />
-                                  : <div className="product-img-placeholder">🧸</div>}
-                                <div>
-                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>{p.name}</div>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginTop: 2 }}>ID: {p._id?.slice(-6)}</div>
+              <div className="products-table-wrap">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#faf9fe" }}>
+                      {["Product", "Category", "Price", "Stock", "Actions"].map((h) => (
+                        <th key={h} style={{
+                          padding: "12px 20px",
+                          textAlign: "left",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "#aaa",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.8px",
+                          borderBottom: "1.5px solid #f0edff",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((p, i) => {
+                      const stockLow = p.stock <= 5 && p.stock > 0;
+                      const stockOut = p.stock === 0;
+                      return (
+                        <tr
+                          key={p._id}
+                          className="products-table-row"
+                          style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}
+                        >
+                          {/* Product */}
+                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              {p.image ? (
+                                <img src={p.image} alt={p.name} className="product-img" />
+                              ) : (
+                                <div className="product-img-placeholder">🧸</div>
+                              )}
+                              <div>
+                                <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>
+                                  {p.name}
+                                </div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginTop: 2 }}>
+                                  ID: {p._id?.slice(-6)}
                                 </div>
                               </div>
-                            </td>
-                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                              {p.category
-                                ? <span style={{ background: "#f0edff", color: "#8b7fd4", border: "1.5px solid #e8e4f8", borderRadius: 20, padding: "4px 10px", fontSize: 12, fontWeight: 700 }}>{p.category}</span>
-                                : <span style={{ color: "#ccc", fontSize: 13 }}>—</span>}
-                            </td>
-                            <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
-                              KES {(p.price || 0).toLocaleString()}
-                            </td>
-                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 6,
-                                background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
-                                color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
-                                border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
-                                borderRadius: 20, padding: "5px 12px", fontSize: 12, fontWeight: 800,
-                              }}>
-                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b", display: "inline-block" }} />
-                                {stockOut ? "Out of stock" : `${p.stock} left`}
-                              </span>
-                            </td>
-                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                              <div style={{ display: "flex", gap: 8 }}>
-                                <button className="action-btn btn-edit" onClick={() => navigate(`/admin/products/edit/${p._id}`)}>✏️ Edit</button>
-                                <button className="action-btn btn-delete" onClick={() => deleteProduct(p._id)}>🗑️ Delete</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                          </td>
 
-                {/* ── Mobile cards ── */}
-                <div className="products-cards-wrap" style={{ flexDirection: "column", gap: 12, padding: 16 }}>
-                  {filtered.map((p) => {
-                    const stockLow = p.stock <= 5 && p.stock > 0;
-                    const stockOut = p.stock === 0;
-                    return (
-                      <div className="product-card" key={p._id}>
-                        {p.image
-                          ? <img src={p.image} alt={p.name} className="product-img" style={{ width: 52, height: 52 }} />
-                          : <div className="product-img-placeholder" style={{ width: 52, height: 52 }}>🧸</div>}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640", marginBottom: 2 }}>{p.name}</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                            <span style={{ fontSize: 14, fontWeight: 900, color: "#2d2640" }}>KES {(p.price || 0).toLocaleString()}</span>
-                            {p.category && (
-                              <span style={{ background: "#f0edff", color: "#8b7fd4", border: "1.5px solid #e8e4f8", borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+                          {/* Category */}
+                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                            {p.category ? (
+                              <span style={{
+                                background: "#f0edff", color: "#8b7fd4",
+                                border: "1.5px solid #e8e4f8",
+                                borderRadius: 20, padding: "4px 10px",
+                                fontSize: 12, fontWeight: 700,
+                              }}>
                                 {p.category}
                               </span>
+                            ) : (
+                              <span style={{ color: "#ccc", fontSize: 13 }}>—</span>
                             )}
-                          </div>
-                          <span style={{
-                            display: "inline-flex", alignItems: "center", gap: 5,
-                            background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
-                            color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
-                            border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
-                            borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 800,
-                          }}>
-                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b", display: "inline-block" }} />
-                            {stockOut ? "Out of stock" : `${p.stock} left`}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-                          <button className="action-btn btn-edit" onClick={() => navigate(`/admin/products/edit/${p._id}`)}>✏️</button>
-                          <button className="action-btn btn-delete" onClick={() => deleteProduct(p._id)}>🗑️</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
+                          </td>
+
+                          {/* Price */}
+                          <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
+                            KES {(p.price || 0).toLocaleString()}
+                          </td>
+
+                          {/* Stock */}
+                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 6,
+                              background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
+                              color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
+                              border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
+                              borderRadius: 20, padding: "5px 12px",
+                              fontSize: 12, fontWeight: 800,
+                            }}>
+                              <span style={{
+                                width: 6, height: 6, borderRadius: "50%",
+                                background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b",
+                                display: "inline-block",
+                              }} />
+                              {stockOut ? "Out of stock" : `${p.stock} left`}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                className="action-btn btn-edit"
+                                onClick={() => navigate(`/admin/products/edit/${p._id}`)}
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                className="action-btn btn-delete"
+                                onClick={() => setDeleteConfirm({ open: true, productId: p._id, productName: p.name })}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
         </div>
       </AdminLayout>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.open}
+        title="Delete Product?"
+        message={`"${deleteConfirm.productName}" will be permanently removed from the store. This cannot be undone.`}
+        confirmLabel="Delete Product"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, productId: null, productName: "" })}
+        danger
+      />
     </>
   );
 }

@@ -1,7 +1,10 @@
+const crypto = require("crypto");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
+const { resetPasswordEmail } = require("../utils/emailTemplates");
+const { createTransporter } = require("../utils/sendEmail");
  
 exports.register = async (req, res) => {
   try {
@@ -15,7 +18,7 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = crypto.randomInt(100000, 1000000).toString();
 
     const getGroup = (age) => {
     const n = parseInt(age, 10);
@@ -88,7 +91,10 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        bookClub: user.bookClub || null
+        bookClub:       user.bookClub || null,
+        loyaltyPoints:  user.loyaltyPoints  || 0,
+        loyaltyTier:    user.loyaltyTier    || "Bronze",
+        lifetimePoints: user.lifetimePoints || 0,
       }
     });
 
@@ -144,11 +150,120 @@ exports.resendCode = async (req, res) => {
   const user = await User.findOne({ email: email.toLowerCase() });
   if(!user) return res.status(400).json({message: "User not found" });
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = crypto.randomInt(100000, 1000000).toString();
   user.verificationCode = code;
   await user.save();
 
   await sendEmail(email, code);
 
   res.json({ message: "New code sent" });
+};
+
+// FORGOT PASSWORD — emails a 6-digit OTP (same pattern as email verification)
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    // Always respond 200 to avoid leaking whether an account exists
+    if (!user) return res.json({ message: "If that email is registered, a reset code has been sent." });
+
+    const code = crypto.randomInt(100000, 1000000).toString();
+    user.resetPasswordToken   = code;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: `"The Cuddle Village" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Your password reset code — The Cuddle Village",
+      text: `Your password reset code is: ${code}. It expires in 10 minutes.`,
+      html: resetPasswordEmail(code),
+    });
+
+    res.json({ message: "If that email is registered, a reset code has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ message: "Failed to send reset email" });
+  }
+};
+
+// RESET PASSWORD — accepts { email, code, password } in request body
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, code, password } = req.body;
+
+    if (!email || !code || !password) {
+      return res.status(400).json({ message: "Email, code, and new password are required." });
+    }
+
+    const user = await User.findOne({
+      email:                email.toLowerCase(),
+      resetPasswordToken:   code.trim(),
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: "Code is invalid or has expired." });
+
+    user.password             = await bcrypt.hash(password, 10);
+    user.resetPasswordToken   = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: "Password updated successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
+};
+
+// GET PROFILE
+exports.getProfile = async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password -verificationCode -resetPasswordToken -resetPasswordExpires");
+  res.json(user);
+};
+
+// UPDATE PROFILE (name, phone)
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (name)  user.name  = name.trim();
+    if (phone) user.phone = phone.trim();
+
+    await user.save();
+    res.json({ message: "Profile updated", user: { name: user.name, email: user.email, phone: user.phone } });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+// CHANGE PASSWORD (requires current password)
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Both current and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user._id);
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ message: "Failed to change password" });
+  }
 };

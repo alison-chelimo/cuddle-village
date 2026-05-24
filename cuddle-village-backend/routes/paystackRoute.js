@@ -4,6 +4,9 @@ const {
   verifyPayment,
   webhook,
 } = require("../controllers/paystackController");
+const { paystackLimiter } = require("../middleware/rateLimiter");
+
+router.use(paystackLimiter);
 
 // Initialize a new payment → returns { authorization_url, reference }
 router.post("/initialize", initializePayment);
