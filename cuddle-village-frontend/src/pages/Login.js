@@ -4,10 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import { useLoyalty } from "../context/LoyaltyContext";
 
 function Login() {
   const navigate = useNavigate();
   const { toasts, toast } = useToast();
+  const { refresh: refreshLoyalty } = useLoyalty();
   const [form, setForm] = useState({ email: "", password: "" });
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,7 @@ function Login() {
       localStorage.setItem("token", token);
       if (remember) localStorage.setItem("rememberMe", "true");
       localStorage.setItem("user", JSON.stringify(user));
+      refreshLoyalty();
 
       // ── Book-club age-group redirect ──────────────────────────────────────
       // If the account is linked to a book-club child, route to the correct
