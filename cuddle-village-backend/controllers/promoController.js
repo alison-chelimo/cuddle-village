@@ -1,3 +1,4 @@
+const mongoose  = require("mongoose");
 const PromoCode = require("../models/PromoCode");
 
 // Shared validation logic
@@ -81,7 +82,8 @@ exports.createPromoCode = async (req, res) => {
 // PATCH /api/admin/promo-codes/:id  (toggle active)
 exports.togglePromoCode = async (req, res) => {
   try {
-    const promo = await PromoCode.findById(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ message: "Not found" });
+    const promo = await PromoCode.findById(new mongoose.Types.ObjectId(req.params.id));
     if (!promo) return res.status(404).json({ message: "Not found" });
     promo.isActive = !promo.isActive;
     await promo.save();
@@ -94,7 +96,8 @@ exports.togglePromoCode = async (req, res) => {
 // DELETE /api/admin/promo-codes/:id
 exports.deletePromoCode = async (req, res) => {
   try {
-    await PromoCode.findByIdAndDelete(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ message: "Not found" });
+    await PromoCode.findByIdAndDelete(new mongoose.Types.ObjectId(req.params.id));
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });

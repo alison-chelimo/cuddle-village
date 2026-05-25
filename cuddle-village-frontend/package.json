@@ -14,7 +14,8 @@
     "react-router-dom": "^6.30.3",
     "react-scripts": "5.0.1",
     "recharts": "^3.8.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "yaml": "^2.9.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -26,6 +27,21 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ]
+  },
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "collectCoverageFrom": [
+      "src/utils/**/*.js",
+      "src/pages/Orders.js",
+      "src/pages/admin/AdminOrders.js"
     ]
   },
   "browserslist": {

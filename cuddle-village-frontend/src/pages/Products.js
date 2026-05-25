@@ -46,6 +46,7 @@ function enrichProduct(p) {
   return { ...match, ...p, emoji: p.emoji ?? match?.emoji ?? "🛍️" };
 }
 
+// Assign stable display metadata to each product so tabs can filter by it
 function assignDisplayMeta(products) {
   return products.map((p, i) => ({
     ...p,
@@ -67,23 +68,8 @@ export default function Products() {
   const [addedIds, setAddedIds]             = useState({});
   const [searchParams]                      = useSearchParams();
   const searchQuery                         = searchParams.get("search") || "";
-  const categoryParam                       = searchParams.get("category") || "";
 
   const [allProducts, setAllProducts] = useState(() => assignDisplayMeta(FLAT_PRODUCTS));
-
-  // Apply category from URL param (e.g. coming from Home page cards)
-  useEffect(() => {
-    if (categoryParam) {
-      const match = CATEGORIES.find(c => c.id === categoryParam);
-      if (match) {
-        setActiveCategory(match.id);
-        setActiveSub(null);
-      }
-    } else {
-      setActiveCategory("all");
-      setActiveSub(null);
-    }
-  }, [categoryParam]);
 
   useEffect(() => {
     API.get("/products")
@@ -281,18 +267,6 @@ export default function Products() {
         }
         .add-to-cart-btn.added { background:linear-gradient(135deg,#B5D99C,#9dcc82); color:#fff; border-color:transparent; }
 
-        /* Active category banner */
-        .active-category-banner {
-          display:flex; align-items:center; justify-content:space-between;
-          background:#f0edff; border-radius:12px;
-          padding:10px 16px; margin-bottom:16px;
-          font-size:13px; font-weight:700; color:#555;
-        }
-        .active-category-banner a {
-          color:#afa7e7; font-weight:800; text-decoration:none; font-size:12px;
-        }
-        .active-category-banner a:hover { color:#8b7fd4; }
-
         /* Search result badge */
         .search-result-badge {
           font-size:13px; font-weight:700; color:#555;
@@ -391,14 +365,6 @@ export default function Products() {
                 <p>{filtered.length} product{filtered.length !== 1 ? "s" : ""}</p>
               </div>
             </div>
-
-            {/* Active category banner (shown when arriving from Home) */}
-            {categoryParam && activeCategory !== "all" && (
-              <div className="active-category-banner">
-                <span>Showing: <strong>{activeCatObj?.emoji} {activeCatObj?.label}</strong></span>
-                <Link to="/products">✕ Clear filter</Link>
-              </div>
-            )}
 
             {/* Search result banner */}
             {searchQuery && (
