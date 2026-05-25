@@ -14,21 +14,20 @@ function AdminProducts() {
   useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = async () => {
-  try {
-    const res = await API.get("/products");
-    // Normalize missing stock/price so comparisons work correctly
-    const normalized = res.data.map((p) => ({
-      ...p,
-      stock: p.stock ?? 0,
-      price: p.price ?? 0,
-    }));
-    setProducts(normalized);     
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const res = await API.get("/products");
+      const normalized = res.data.map((p) => ({
+        ...p,
+        stock: p.stock ?? 0,
+        price: p.price ?? 0,
+      }));
+      setProducts(normalized);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleConfirmDelete = async () => {
     try {
@@ -52,7 +51,7 @@ function AdminProducts() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-        .products-wrap * { font-family: 'Nunito', sans-serif; }
+        .products-wrap * { font-family: 'Nunito', sans-serif; box-sizing: border-box; }
 
         .products-table-row { transition: background 0.15s; }
         .products-table-row:hover { background: #f5f2ff !important; }
@@ -90,7 +89,7 @@ function AdminProducts() {
           padding: 11px 16px 11px 40px; border: 1.5px solid #e8e4f8;
           border-radius: 12px; font-size: 14px; color: #2d2640;
           font-family: 'Nunito', sans-serif; font-weight: 600;
-          background: #faf9fe; transition: all 0.2s; width: 100%; box-sizing: border-box;
+          background: #faf9fe; transition: all 0.2s; width: 100%;
         }
         .search-input:focus { outline: none; border-color: #afa7e7; background: #fff; box-shadow: 0 0 0 3px rgba(175,167,231,0.12); }
         .search-input::placeholder { color: #ccc; }
@@ -115,22 +114,42 @@ function AdminProducts() {
           font-size: 20px; flex-shrink: 0;
         }
 
-        /* Product card for mobile */
-        .product-card {
-          background: #fff; border-radius: 16px; padding: 16px 18px;
-          border: 1.5px solid #f0edff; box-shadow: 0 2px 12px rgba(175,167,231,0.08);
-          display: flex; align-items: center; gap: 14px;
+        /* ── Mobile product card ── */
+        .product-mobile-card {
+          background: #fff; border-radius: 16px; padding: 16px;
+          border: 1.5px solid #f0edff;
+          box-shadow: 0 2px 12px rgba(175,167,231,0.08);
+          display: flex; flex-direction: column; gap: 12px;
+        }
+        .product-mobile-card-top {
+          display: flex; align-items: center; gap: 12px;
+        }
+        .product-mobile-card-info { flex: 1; min-width: 0; }
+        .product-mobile-card-name {
+          font-size: 14px; font-weight: 800; color: #2d2640;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .product-mobile-card-id {
+          font-size: 11px; font-weight: 600; color: #bbb; margin-top: 2px;
+        }
+        .product-mobile-card-meta {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 8px;
+        }
+        .product-mobile-card-actions {
+          display: flex; gap: 8px;
         }
 
+        /* Show/hide per breakpoint */
+        .desktop-only { display: block; }
+        .mobile-only  { display: none;  }
+
         @media (max-width: 768px) {
-          .products-table-wrap { display: none !important; }
-          .products-cards-wrap { display: flex !important; }
+          .desktop-only { display: none !important; }
+          .mobile-only  { display: block !important; }
           .stats-mini-grid { grid-template-columns: 1fr 1fr !important; }
           .products-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .products-header h1 { font-size: 26px !important; }
-        }
-        @media (min-width: 769px) {
-          .products-cards-wrap { display: none !important; }
         }
       `}</style>
 
@@ -183,7 +202,7 @@ function AdminProducts() {
             ))}
           </div>
 
-          {/* Table card */}
+          {/* Main card */}
           <div style={{
             background: "#fff", borderRadius: 20,
             border: "1.5px solid #f0edff",
@@ -219,122 +238,149 @@ function AdminProducts() {
                 {search ? "No products match your search" : "No products found"}
               </div>
             ) : (
-              <div className="products-table-wrap">
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#faf9fe" }}>
-                      {["Product", "Category", "Price", "Stock", "Actions"].map((h) => (
-                        <th key={h} style={{
-                          padding: "12px 20px",
-                          textAlign: "left",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: "#aaa",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.8px",
-                          borderBottom: "1.5px solid #f0edff",
-                          whiteSpace: "nowrap",
-                        }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((p, i) => {
-                      const stockLow = p.stock <= 5 && p.stock > 0;
-                      const stockOut = p.stock === 0;
-                      return (
-                        <tr
-                          key={p._id}
-                          className="products-table-row"
-                          style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}
-                        >
-                          {/* Product */}
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              {p.image ? (
-                                <img src={p.image} alt={p.name} className="product-img" />
-                              ) : (
-                                <div className="product-img-placeholder">🧸</div>
-                              )}
-                              <div>
-                                <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>
-                                  {p.name}
-                                </div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginTop: 2 }}>
-                                  ID: {p._id?.slice(-6)}
+              <>
+                {/* ── Desktop table ── */}
+                <div className="desktop-only">
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "#faf9fe" }}>
+                        {["Product", "Category", "Price", "Stock", "Actions"].map((h) => (
+                          <th key={h} style={{
+                            padding: "12px 20px", textAlign: "left",
+                            fontSize: 11, fontWeight: 800, color: "#aaa",
+                            textTransform: "uppercase", letterSpacing: "0.8px",
+                            borderBottom: "1.5px solid #f0edff", whiteSpace: "nowrap",
+                          }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((p, i) => {
+                        const stockLow = p.stock <= 5 && p.stock > 0;
+                        const stockOut = p.stock === 0;
+                        return (
+                          <tr key={p._id} className="products-table-row"
+                            style={{ background: i % 2 === 0 ? "#fff" : "#fdfcff" }}>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                {p.image
+                                  ? <img src={p.image} alt={p.name} className="product-img" />
+                                  : <div className="product-img-placeholder">🧸</div>
+                                }
+                                <div>
+                                  <div style={{ fontSize: 14, fontWeight: 800, color: "#2d2640" }}>{p.name}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#bbb", marginTop: 2 }}>ID: {p._id?.slice(-6)}</div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-
-                          {/* Category */}
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            {p.category ? (
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              {p.category ? (
+                                <span style={{
+                                  background: "#f0edff", color: "#8b7fd4",
+                                  border: "1.5px solid #e8e4f8", borderRadius: 20,
+                                  padding: "4px 10px", fontSize: 12, fontWeight: 700,
+                                }}>{p.category}</span>
+                              ) : <span style={{ color: "#ccc", fontSize: 13 }}>—</span>}
+                            </td>
+                            <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
+                              KES {(p.price || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
                               <span style={{
-                                background: "#f0edff", color: "#8b7fd4",
-                                border: "1.5px solid #e8e4f8",
-                                borderRadius: 20, padding: "4px 10px",
-                                fontSize: 12, fontWeight: 700,
+                                display: "inline-flex", alignItems: "center", gap: 6,
+                                background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
+                                color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
+                                border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
+                                borderRadius: 20, padding: "5px 12px",
+                                fontSize: 12, fontWeight: 800,
                               }}>
-                                {p.category}
+                                <span style={{
+                                  width: 6, height: 6, borderRadius: "50%",
+                                  background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b",
+                                  display: "inline-block",
+                                }} />
+                                {stockOut ? "Out of stock" : `${p.stock} left`}
                               </span>
-                            ) : (
-                              <span style={{ color: "#ccc", fontSize: 13 }}>—</span>
-                            )}
-                          </td>
+                            </td>
+                            <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <button className="action-btn btn-edit"
+                                  onClick={() => navigate(`/admin/products/edit/${p._id}`)}>✏️ Edit</button>
+                                <button className="action-btn btn-delete"
+                                  onClick={() => setDeleteConfirm({ open: true, productId: p._id, productName: p.name })}>🗑️ Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-                          {/* Price */}
-                          <td style={{ padding: "14px 20px", fontSize: 15, fontWeight: 900, color: "#2d2640", borderBottom: "1px solid #f5f3ff" }}>
-                            KES {(p.price || 0).toLocaleString()}
-                          </td>
+                {/* ── Mobile cards ── */}
+                <div className="mobile-only" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                  {filtered.map((p) => {
+                    const stockLow = p.stock <= 5 && p.stock > 0;
+                    const stockOut = p.stock === 0;
+                    return (
+                      <div key={p._id} className="product-mobile-card">
+                        {/* Top row: image + name + id */}
+                        <div className="product-mobile-card-top">
+                          {p.image
+                            ? <img src={p.image} alt={p.name} className="product-img" />
+                            : <div className="product-img-placeholder">🧸</div>
+                          }
+                          <div className="product-mobile-card-info">
+                            <div className="product-mobile-card-name">{p.name}</div>
+                            <div className="product-mobile-card-id">ID: {p._id?.slice(-6)}</div>
+                          </div>
+                        </div>
 
-                          {/* Stock */}
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
+                        {/* Meta row: category + price + stock */}
+                        <div className="product-mobile-card-meta">
+                          {p.category && (
                             <span style={{
-                              display: "inline-flex", alignItems: "center", gap: 6,
-                              background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
-                              color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
-                              border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
-                              borderRadius: 20, padding: "5px 12px",
-                              fontSize: 12, fontWeight: 800,
-                            }}>
-                              <span style={{
-                                width: 6, height: 6, borderRadius: "50%",
-                                background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b",
-                                display: "inline-block",
-                              }} />
-                              {stockOut ? "Out of stock" : `${p.stock} left`}
-                            </span>
-                          </td>
+                              background: "#f0edff", color: "#8b7fd4",
+                              border: "1.5px solid #e8e4f8", borderRadius: 20,
+                              padding: "3px 10px", fontSize: 11, fontWeight: 700,
+                            }}>{p.category}</span>
+                          )}
+                          <span style={{ fontSize: 15, fontWeight: 900, color: "#2d2640" }}>
+                            KES {(p.price || 0).toLocaleString()}
+                          </span>
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: stockOut ? "#fff3f3" : stockLow ? "#fff8ec" : "#edfaf4",
+                            color: stockOut ? "#c0392b" : stockLow ? "#d48a0a" : "#1a7a4a",
+                            border: `1.5px solid ${stockOut ? "#e8a0a055" : stockLow ? "#f7c94855" : "#34c77b55"}`,
+                            borderRadius: 20, padding: "3px 10px",
+                            fontSize: 11, fontWeight: 800,
+                          }}>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: "50%",
+                              background: stockOut ? "#e87070" : stockLow ? "#f7c948" : "#34c77b",
+                              display: "inline-block",
+                            }} />
+                            {stockOut ? "Out of stock" : `${p.stock} left`}
+                          </span>
+                        </div>
 
-                          {/* Actions */}
-                          <td style={{ padding: "14px 20px", borderBottom: "1px solid #f5f3ff" }}>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button
-                                className="action-btn btn-edit"
-                                onClick={() => navigate(`/admin/products/edit/${p._id}`)}
-                              >
-                                ✏️ Edit
-                              </button>
-                              <button
-                                className="action-btn btn-delete"
-                                onClick={() => setDeleteConfirm({ open: true, productId: p._id, productName: p.name })}
-                              >
-                                🗑️ Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        {/* Actions */}
+                        <div className="product-mobile-card-actions">
+                          <button className="action-btn btn-edit" style={{ flex: 1 }}
+                            onClick={() => navigate(`/admin/products/edit/${p._id}`)}>✏️ Edit</button>
+                          <button className="action-btn btn-delete" style={{ flex: 1 }}
+                            onClick={() => setDeleteConfirm({ open: true, productId: p._id, productName: p.name })}>🗑️ Delete</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
-
         </div>
       </AdminLayout>
 

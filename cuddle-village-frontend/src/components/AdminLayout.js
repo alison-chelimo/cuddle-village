@@ -47,6 +47,7 @@ function AdminLayout({ children }) {
           padding: 0 10px 24px;
           border-bottom: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 10px;
+          flex-shrink: 0;
         }
 
         .sidebar-brand-icon {
@@ -84,6 +85,12 @@ function AdminLayout({ children }) {
           padding: 0 10px;
           margin-bottom: 6px;
           margin-top: 4px;
+          flex-shrink: 0;
+        }
+
+        /* Scrollable nav area — desktop uses normal flow */
+        .sidebar-nav-scroll {
+          display: contents;
         }
 
         .sidebar-link {
@@ -134,6 +141,7 @@ function AdminLayout({ children }) {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          flex-shrink: 0;
         }
 
         .sidebar-footer-badge {
@@ -228,13 +236,39 @@ function AdminLayout({ children }) {
         @media (max-width: 768px) {
           .admin-layout { flex-direction: column; }
           .admin-mobile-topbar { display: flex; }
+
           .admin-sidebar {
             position: fixed; left: 0; top: 0;
             height: 100vh; z-index: 100;
             transform: translateX(-100%);
             transition: transform 0.28s ease;
+            /* Key fix: don't scroll the whole sidebar */
+            overflow: hidden;
+            padding: 28px 16px 16px;
+            gap: 0;
           }
           .admin-sidebar.open { transform: translateX(0); }
+
+          /* Nav links scroll independently */
+          .sidebar-nav-scroll {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(175,167,231,0.3) transparent;
+          }
+          .sidebar-nav-scroll::-webkit-scrollbar { width: 3px; }
+          .sidebar-nav-scroll::-webkit-scrollbar-thumb { background: rgba(175,167,231,0.3); border-radius: 4px; }
+
+          /* Footer always visible at bottom */
+          .sidebar-footer {
+            margin-top: 0;
+            padding-top: 12px;
+          }
+
           .admin-content { padding: 24px 16px; }
         }
       `}</style>
@@ -256,6 +290,7 @@ function AdminLayout({ children }) {
 
         {/* Sidebar */}
         <div className={`admin-sidebar${sidebarOpen ? " open" : ""}`}>
+          {/* Brand — always visible, never scrolls */}
           <div className="sidebar-brand">
             <div className="sidebar-brand-icon">🧸</div>
             <div>
@@ -266,22 +301,26 @@ function AdminLayout({ children }) {
 
           <div className="nav-label">Menu</div>
 
-          {navLinks.map((link) => {
-            const isActive = location.pathname === link.to;
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`sidebar-link${isActive ? " active" : ""}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <span className="sidebar-link-emoji">{link.emoji}</span>
-                {link.label}
-                {isActive && <span className="sidebar-active-dot" />}
-              </Link>
-            );
-          })}
+          {/* Scrollable nav links */}
+          <div className="sidebar-nav-scroll">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.to;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`sidebar-link${isActive ? " active" : ""}`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <span className="sidebar-link-emoji">{link.emoji}</span>
+                  {link.label}
+                  {isActive && <span className="sidebar-active-dot" />}
+                </Link>
+              );
+            })}
+          </div>
 
+          {/* Footer — always pinned at bottom */}
           <div className="sidebar-footer">
             <div className="sidebar-footer-badge">
               <div className="sidebar-footer-avatar">👤</div>

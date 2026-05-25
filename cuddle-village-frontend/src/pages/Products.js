@@ -4,7 +4,7 @@ import API from "../services/api";
 import { CartContext } from "../context/CartContext";
 import { CATEGORIES, CATALOG, FLAT_PRODUCTS, getSubcategories } from "../data/products";
 
-// ─── Seeded display helpers (unchanged from your original) ────────────────────
+// ─── Seeded display helpers ────────────────────────────────────────────────────
 const BADGES       = ["Sale", "New", "Hot", null, "-35%", null, "Best Seller", null];
 const BADGE_COLORS = { Sale: "#FBC4AB", New: "#B5D99C", Hot: "#afa7e7", "-35%": "#e88a8a", "Best Seller": "#f5c842" };
 const METAS        = ["Premium Collection", "Best Seller", "New Arrival", "Editor's Pick", "Trending Now", "Hand-Picked"];
@@ -22,7 +22,6 @@ function Stars({ rating }) {
   );
 }
 
-// Placeholder: emoji + name when no image is set yet
 function ProductImageBox({ product, height = 175 }) {
   if (product.image) {
     return (
@@ -42,13 +41,11 @@ function ProductImageBox({ product, height = 175 }) {
   );
 }
 
-// Enrich API products with catalog metadata (emoji, category) by name-matching
 function enrichProduct(p) {
   const match = FLAT_PRODUCTS.find(fp => fp.name.toLowerCase() === p.name?.toLowerCase());
   return { ...match, ...p, emoji: p.emoji ?? match?.emoji ?? "🛍️" };
 }
 
-// Assign stable display metadata to each product so tabs can filter by it
 function assignDisplayMeta(products) {
   return products.map((p, i) => ({
     ...p,
@@ -70,8 +67,23 @@ export default function Products() {
   const [addedIds, setAddedIds]             = useState({});
   const [searchParams]                      = useSearchParams();
   const searchQuery                         = searchParams.get("search") || "";
+  const categoryParam                       = searchParams.get("category") || "";
 
   const [allProducts, setAllProducts] = useState(() => assignDisplayMeta(FLAT_PRODUCTS));
+
+  // Apply category from URL param (e.g. coming from Home page cards)
+  useEffect(() => {
+    if (categoryParam) {
+      const match = CATEGORIES.find(c => c.id === categoryParam);
+      if (match) {
+        setActiveCategory(match.id);
+        setActiveSub(null);
+      }
+    } else {
+      setActiveCategory("all");
+      setActiveSub(null);
+    }
+  }, [categoryParam]);
 
   useEffect(() => {
     API.get("/products")
@@ -79,7 +91,7 @@ export default function Products() {
         const enriched = res.data.map(enrichProduct);
         if (enriched.length > 0) setAllProducts(assignDisplayMeta(enriched));
       })
-      .catch(() => {}); // silently keep showing FLAT_PRODUCTS
+      .catch(() => {});
   }, []);
 
   const handleCategoryClick = (catId) => { setActiveCategory(catId); setActiveSub(null); };
@@ -269,6 +281,18 @@ export default function Products() {
         }
         .add-to-cart-btn.added { background:linear-gradient(135deg,#B5D99C,#9dcc82); color:#fff; border-color:transparent; }
 
+        /* Active category banner */
+        .active-category-banner {
+          display:flex; align-items:center; justify-content:space-between;
+          background:#f0edff; border-radius:12px;
+          padding:10px 16px; margin-bottom:16px;
+          font-size:13px; font-weight:700; color:#555;
+        }
+        .active-category-banner a {
+          color:#afa7e7; font-weight:800; text-decoration:none; font-size:12px;
+        }
+        .active-category-banner a:hover { color:#8b7fd4; }
+
         /* Search result badge */
         .search-result-badge {
           font-size:13px; font-weight:700; color:#555;
@@ -328,7 +352,7 @@ export default function Products() {
 
         <div className="products-body">
 
-          {/* ── Sidebar ──────────────────────────────────────────── */}
+          {/* Sidebar */}
           <aside className="products-sidebar">
             <div className="sidebar-title">Shop by Category</div>
             {CATEGORIES.map(cat => {
@@ -359,7 +383,7 @@ export default function Products() {
             })}
           </aside>
 
-          {/* ── Grid ─────────────────────────────────────────────── */}
+          {/* Grid */}
           <div className="products-grid-area">
             <div className="grid-header">
               <div>
@@ -367,6 +391,14 @@ export default function Products() {
                 <p>{filtered.length} product{filtered.length !== 1 ? "s" : ""}</p>
               </div>
             </div>
+
+            {/* Active category banner (shown when arriving from Home) */}
+            {categoryParam && activeCategory !== "all" && (
+              <div className="active-category-banner">
+                <span>Showing: <strong>{activeCatObj?.emoji} {activeCatObj?.label}</strong></span>
+                <Link to="/products">✕ Clear filter</Link>
+              </div>
+            )}
 
             {/* Search result banner */}
             {searchQuery && (

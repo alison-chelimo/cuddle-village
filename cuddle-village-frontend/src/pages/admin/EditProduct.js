@@ -4,10 +4,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/AdminLayout";
 import { formStyles } from "./AddProduct";
 
+// Categories matching the frontend products.js catalog exactly
 const CATEGORIES = [
-  "Electronics", "Clothing", "Food & Drinks", "Home & Living",
-  "Beauty & Health", "Sports & Outdoors", "Toys & Games",
-  "Books & Stationery", "Other",
+  { id: "diaper",   label: "👶 Diapering"        },
+  { id: "clothing", label: "👕 Clothing"          },
+  { id: "feeding",  label: "🍼 Feeding"           },
+  { id: "bath",     label: "🛁 Bath & Skincare"   },
+  { id: "travel",   label: "🚼 Travel & Nursery"  },
+  { id: "toys",     label: "🧸 Toys"              },
+  { id: "books",    label: "📚 Books"             },
+  { id: "gifts",    label: "🎁 Gifts"             },
+  { id: "health",   label: "🩺 Health & Safety"   },
+  { id: "mom",      label: "🤱 Mom & Maternity"   },
 ];
 
 function EditProduct() {
@@ -24,12 +32,12 @@ function EditProduct() {
       try {
         const res = await API.get(`/products/${id}`);
         setForm({
-          name: res.data.name || "",
-          price: res.data.price || "",
+          name:        res.data.name        || "",
+          price:       res.data.price       || "",
           description: res.data.description || "",
-          category: res.data.category || "",
-          stock: res.data.stock || "",
-          image: res.data.image || "",
+          category:    res.data.category    || "",
+          stock:       res.data.stock       || "",
+          image:       res.data.image       || "",
         });
       } catch (err) {
         console.error(err);
@@ -40,13 +48,6 @@ function EditProduct() {
     };
     fetchProduct();
   }, [id]);
-
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +121,9 @@ function EditProduct() {
                   <select className="form-select" value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}>
                     <option value="" disabled>Select a category…</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </label>
                 <label className="form-label">

@@ -4,10 +4,18 @@ import API from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
 import { useNavigate } from "react-router-dom";
 
+// Categories matching the frontend products.js catalog exactly
 const CATEGORIES = [
-  "Electronics", "Clothing", "Food & Drinks", "Home & Living",
-  "Beauty & Health", "Sports & Outdoors", "Toys & Games",
-  "Books & Stationery", "Other",
+  { id: "diaper",   label: "👶 Diapering"        },
+  { id: "clothing", label: "👕 Clothing"          },
+  { id: "feeding",  label: "🍼 Feeding"           },
+  { id: "bath",     label: "🛁 Bath & Skincare"   },
+  { id: "travel",   label: "🚼 Travel & Nursery"  },
+  { id: "toys",     label: "🧸 Toys"              },
+  { id: "books",    label: "📚 Books"             },
+  { id: "gifts",    label: "🎁 Gifts"             },
+  { id: "health",   label: "🩺 Health & Safety"   },
+  { id: "mom",      label: "🤱 Mom & Maternity"   },
 ];
 
 export function AddProduct() {
@@ -52,7 +60,7 @@ export function AddProduct() {
               <div className="form-row">
                 <label className="form-label">
                   Product Name <span className="required">*</span>
-                  <input className="form-input" placeholder="e.g. Wireless Headphones" required
+                  <input className="form-input" placeholder="e.g. Nursing Pillow" required
                     value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 </label>
                 <label className="form-label">
@@ -67,7 +75,9 @@ export function AddProduct() {
                   <select className="form-select" value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}>
                     <option value="" disabled>Select a category…</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </label>
                 <label className="form-label">
@@ -113,9 +123,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/AdminLayout";
 
 const CATEGORIES = [
-  "Electronics", "Clothing", "Food & Drinks", "Home & Living",
-  "Beauty & Health", "Sports & Outdoors", "Toys & Games",
-  "Books & Stationery", "Other",
+  { id: "diaper",   label: "👶 Diapering"        },
+  { id: "clothing", label: "👕 Clothing"          },
+  { id: "feeding",  label: "🍼 Feeding"           },
+  { id: "bath",     label: "🛁 Bath & Skincare"   },
+  { id: "travel",   label: "🚼 Travel & Nursery"  },
+  { id: "toys",     label: "🧸 Toys"              },
+  { id: "books",    label: "📚 Books"             },
+  { id: "gifts",    label: "🎁 Gifts"             },
+  { id: "health",   label: "🩺 Health & Safety"   },
+  { id: "mom",      label: "🤱 Mom & Maternity"   },
 ];
 
 function EditProduct() {
@@ -183,7 +200,9 @@ function EditProduct() {
                 <label className="form-label">Category
                   <select className="form-select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                     <option value="" disabled>Select a category…</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
                   </select>
                 </label>
                 <label className="form-label">Stock Quantity
