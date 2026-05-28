@@ -5,6 +5,9 @@ import AdminLayout from "../../components/AdminLayout";
 import ConfirmModal from "../../components/ConfirmModal";
 import useToast from "../../hooks/useToast";
 import Toast from "../../components/Toast";
+import { SkeletonTable } from "../../components/Skeleton";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
 
 const TIER_COLORS = {
   Bronze:   { color: "#b8860b", bg: "#fffbeb" },
@@ -86,6 +89,8 @@ function Users() {
     u.name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const { page, setPage, totalPages, pageItems } = usePagination(filtered, 10);
 
   return (
     <>
@@ -182,7 +187,7 @@ function Users() {
 
           <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 4px 20px rgba(175,167,231,0.1)", border: "1.5px solid #f0eeff", overflow: "hidden" }}>
             {loading ? (
-              <div style={{ padding: 40, textAlign: "center", color: "#aaa", fontWeight: 700 }}>Loading users…</div>
+              <table className="users-table"><tbody><SkeletonTable rows={6} cols={6} /></tbody></table>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table className="users-table">
@@ -197,7 +202,7 @@ function Users() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map(u => {
+                    {pageItems.map(u => {
                       const tc = TIER_COLORS[u.loyaltyTier] || TIER_COLORS.Bronze;
                       const rc = ROLE_COLORS[u.role] || ROLE_COLORS.user;
                       return (
@@ -235,11 +240,12 @@ function Users() {
                         </tr>
                       );
                     })}
-                    {filtered.length === 0 && (
+                    {pageItems.length === 0 && (
                       <tr><td colSpan={6} style={{ textAlign: "center", color: "#aaa", padding: 32 }}>No users found</td></tr>
                     )}
                   </tbody>
                 </table>
+                <Pagination page={page} totalPages={totalPages} onChange={setPage} />
               </div>
             )}
           </div>

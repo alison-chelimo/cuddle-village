@@ -138,7 +138,7 @@ describe("PUT /orders/:id — update status", () => {
   });
 
   it("updates order status successfully", async () => {
-    const mockOrder = { _id: orderId, status: "pending", isDelivered: false, save: jest.fn().mockResolvedValue(true) };
+    const mockOrder = { _id: orderId, status: "pending", isDelivered: false, statusHistory: [], save: jest.fn().mockResolvedValue(true) };
     Order.findById.mockResolvedValue(mockOrder);
     const res = await request(app).put(`/orders/${orderId}`).send({ status: "shipped" });
     expect(res.status).toBe(200);
@@ -147,7 +147,7 @@ describe("PUT /orders/:id — update status", () => {
   });
 
   it("sets isDelivered=true when status is delivered", async () => {
-    const mockOrder = { _id: orderId, status: "shipped", isDelivered: false, save: jest.fn().mockResolvedValue(true) };
+    const mockOrder = { _id: orderId, status: "shipped", isDelivered: false, statusHistory: [], save: jest.fn().mockResolvedValue(true) };
     Order.findById.mockResolvedValue(mockOrder);
     await request(app).put(`/orders/${orderId}`).send({ status: "delivered" });
     expect(mockOrder.isDelivered).toBe(true);

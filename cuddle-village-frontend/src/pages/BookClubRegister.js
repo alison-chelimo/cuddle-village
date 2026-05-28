@@ -3,6 +3,7 @@ import API from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
+import { isAuthenticated } from "../utils/auth";
 
 /**
  * BookClubRegister.jsx
@@ -75,7 +76,28 @@ function BookClubRegister() {
     setLoading(true);
     try {
       await API.post("/book-club/register", { child, parent, program: { ...program, group } });
-      setSubmitted(true);
+
+      // If the parent is logged in, refresh their profile so localStorage reflects the new group,
+      // then redirect them to the correct hub after a short success flash.
+      if (isAuthenticated()) {
+        try {
+          const profileRes = await API.get("/auth/profile");
+          const updatedUser = profileRes.data;
+          const stored = JSON.parse(localStorage.getItem("user") || "{}");
+          localStorage.setItem("user", JSON.stringify({ ...stored, bookClub: updatedUser.bookClub }));
+          setSubmitted(true);
+          setTimeout(() => {
+            const g = updatedUser.bookClub?.group;
+            if (g === "early-learners")  navigate("/early-learners");
+            else if (g === "growing-readers") navigate("/growing-readers");
+            else navigate("/book-club");
+          }, 2500);
+        } catch {
+          setSubmitted(true);
+        }
+      } else {
+        setSubmitted(true);
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
