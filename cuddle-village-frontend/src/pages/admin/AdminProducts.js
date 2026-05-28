@@ -56,7 +56,7 @@ function AdminProducts() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-        .products-wrap * { font-family: 'Nunito', sans-serif; }
+        .products-wrap * { font-family: 'Nunito', sans-serif; box-sizing: border-box; }
 
         .products-table-row { transition: background 0.15s; }
         .products-table-row:hover { background: #f5f2ff !important; }
@@ -94,7 +94,7 @@ function AdminProducts() {
           padding: 11px 16px 11px 40px; border: 1.5px solid #e8e4f8;
           border-radius: 12px; font-size: 14px; color: #2d2640;
           font-family: 'Nunito', sans-serif; font-weight: 600;
-          background: #faf9fe; transition: all 0.2s; width: 100%; box-sizing: border-box;
+          background: #faf9fe; transition: all 0.2s; width: 100%;
         }
         .search-input:focus { outline: none; border-color: #afa7e7; background: #fff; box-shadow: 0 0 0 3px rgba(175,167,231,0.12); }
         .search-input::placeholder { color: #ccc; }
@@ -119,22 +119,42 @@ function AdminProducts() {
           font-size: 20px; flex-shrink: 0;
         }
 
-        /* Product card for mobile */
-        .product-card {
-          background: #fff; border-radius: 16px; padding: 16px 18px;
-          border: 1.5px solid #f0edff; box-shadow: 0 2px 12px rgba(175,167,231,0.08);
-          display: flex; align-items: center; gap: 14px;
+        /* ── Mobile product card ── */
+        .product-mobile-card {
+          background: #fff; border-radius: 16px; padding: 16px;
+          border: 1.5px solid #f0edff;
+          box-shadow: 0 2px 12px rgba(175,167,231,0.08);
+          display: flex; flex-direction: column; gap: 12px;
+        }
+        .product-mobile-card-top {
+          display: flex; align-items: center; gap: 12px;
+        }
+        .product-mobile-card-info { flex: 1; min-width: 0; }
+        .product-mobile-card-name {
+          font-size: 14px; font-weight: 800; color: #2d2640;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .product-mobile-card-id {
+          font-size: 11px; font-weight: 600; color: #bbb; margin-top: 2px;
+        }
+        .product-mobile-card-meta {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 8px;
+        }
+        .product-mobile-card-actions {
+          display: flex; gap: 8px;
         }
 
+        /* Show/hide per breakpoint */
+        .desktop-only { display: block; }
+        .mobile-only  { display: none;  }
+
         @media (max-width: 768px) {
-          .products-table-wrap { display: none !important; }
-          .products-cards-wrap { display: flex !important; }
+          .desktop-only { display: none !important; }
+          .mobile-only  { display: block !important; }
           .stats-mini-grid { grid-template-columns: 1fr 1fr !important; }
           .products-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .products-header h1 { font-size: 26px !important; }
-        }
-        @media (min-width: 769px) {
-          .products-cards-wrap { display: none !important; }
         }
       `}</style>
 
@@ -187,7 +207,7 @@ function AdminProducts() {
             ))}
           </div>
 
-          {/* Table card */}
+          {/* Main card */}
           <div style={{
             background: "#fff", borderRadius: 20,
             border: "1.5px solid #f0edff",
@@ -339,7 +359,6 @@ function AdminProducts() {
               </div>
             )}
           </div>
-
         </div>
       </AdminLayout>
 

@@ -4,9 +4,9 @@ import logo from "../assets/logo1.JPG";
 
 function Home() {
   const categories = [
-    { name: "Baby", emoji: "🍼", color: "#e8f4fd", accent: "#A7C7E7", count: "120+ items" },
-    { name: "Books", emoji: "📚", color: "#fff4f0", accent: "#FBC4AB", count: "85+ items" },
-    { name: "Wellness", emoji: "🌿", color: "#f3fae8", accent: "#B5D99C", count: "60+ items" },
+    { name: "Baby", id: "baby", emoji: "🍼", color: "#e8f4fd", accent: "#A7C7E7", count: "120+ items" },
+    { name: "Books", id: "books", emoji: "📚", color: "#fff4f0", accent: "#FBC4AB", count: "85+ items" },
+    { name: "Wellness", id: "mom", emoji: "🌿", color: "#f3fae8", accent: "#B5D99C", count: "60+ items" },
   ];
 
   const highlights = [
@@ -399,7 +399,7 @@ function Home() {
               <Link to="/products" className="btn-secondary">See All Categories →</Link>
             </div>
           </div>
- 
+
           <div className="hero-image">
             <img src={logo} alt="The Cuddle Village" />
           </div>
@@ -428,7 +428,7 @@ function Home() {
           <div className="categories-grid">
             {categories.map((cat) => (
               <Link
-                to="/products"
+                to={`/products?category=${cat.id}`}
                 className="category-card"
                 key={cat.name}
                 style={{ background: cat.color }}
@@ -454,14 +454,14 @@ function Home() {
               <div className="featured-card-tag">New Season</div>
               <div className="featured-card-title">Baby Essentials Lookbook</div>
               <div className="featured-card-desc">Everything you need for a comfortable start — soft, safe, and sweet.</div>
-              <Link to="/products" className="featured-card-btn">Explore Collection →</Link>
+              <Link to="/products?category=baby" className="featured-card-btn">Explore Collection →</Link>
               <div className="featured-card-emoji">🧸</div>
             </div>
             <div className="featured-card peach">
               <div className="featured-card-tag">Hand-Picked</div>
               <div className="featured-card-title">Wellness for Mums & Babies</div>
               <div className="featured-card-desc">Natural, gentle, and trusted products for the whole family.</div>
-              <Link to="/products" className="featured-card-btn">Shop Now →</Link>
+              <Link to="/products?category=mom" className="featured-card-btn">Shop Now →</Link>
               <div className="featured-card-emoji">🌸</div>
             </div>
           </div>

@@ -77,6 +77,7 @@ function AdminLayout({ children }) {
           padding: 0 10px 24px;
           border-bottom: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 10px;
+          flex-shrink: 0;
         }
         .sidebar-brand-icon {
           width: 36px; height: 36px;
@@ -273,6 +274,7 @@ function AdminLayout({ children }) {
             );
           })}
 
+          {/* Footer — always pinned at bottom */}
           <div className="sidebar-footer">
             <button
               className="sidebar-profile-btn"

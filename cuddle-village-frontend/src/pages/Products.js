@@ -4,7 +4,7 @@ import API from "../services/api";
 import { CartContext } from "../context/CartContext";
 import { CATEGORIES, CATALOG, FLAT_PRODUCTS, getSubcategories } from "../data/products";
 
-// ─── Seeded display helpers (unchanged from your original) ────────────────────
+// ─── Seeded display helpers ────────────────────────────────────────────────────
 const BADGES       = ["Sale", "New", "Hot", null, "-35%", null, "Best Seller", null];
 const BADGE_COLORS = { Sale: "#FBC4AB", New: "#B5D99C", Hot: "#afa7e7", "-35%": "#e88a8a", "Best Seller": "#f5c842" };
 const METAS        = ["Premium Collection", "Best Seller", "New Arrival", "Editor's Pick", "Trending Now", "Hand-Picked"];
@@ -22,7 +22,6 @@ function Stars({ rating }) {
   );
 }
 
-// Placeholder: emoji + name when no image is set yet
 function ProductImageBox({ product, height = 175 }) {
   if (product.image) {
     return (
@@ -42,7 +41,6 @@ function ProductImageBox({ product, height = 175 }) {
   );
 }
 
-// Enrich API products with catalog metadata (emoji, category) by name-matching
 function enrichProduct(p) {
   const match = FLAT_PRODUCTS.find(fp => fp.name.toLowerCase() === p.name?.toLowerCase());
   return { ...match, ...p, emoji: p.emoji ?? match?.emoji ?? "🛍️" };
@@ -79,7 +77,7 @@ export default function Products() {
         const enriched = res.data.map(enrichProduct);
         if (enriched.length > 0) setAllProducts(assignDisplayMeta(enriched));
       })
-      .catch(() => {}); // silently keep showing FLAT_PRODUCTS
+      .catch(() => {});
   }, []);
 
   const handleCategoryClick = (catId) => { setActiveCategory(catId); setActiveSub(null); };
@@ -328,7 +326,7 @@ export default function Products() {
 
         <div className="products-body">
 
-          {/* ── Sidebar ──────────────────────────────────────────── */}
+          {/* Sidebar */}
           <aside className="products-sidebar">
             <div className="sidebar-title">Shop by Category</div>
             {CATEGORIES.map(cat => {
@@ -359,7 +357,7 @@ export default function Products() {
             })}
           </aside>
 
-          {/* ── Grid ─────────────────────────────────────────────── */}
+          {/* Grid */}
           <div className="products-grid-area">
             <div className="grid-header">
               <div>
