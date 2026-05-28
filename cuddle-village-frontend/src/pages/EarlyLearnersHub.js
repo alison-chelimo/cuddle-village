@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import readersImg from "../assets/readers.png";
 import API from "../services/api";
 import { isAuthenticated } from "../utils/auth";
+import Skeleton from "../components/Skeleton";
 
 const DEFAULT_BOOKS = [
   { title: "The Very Hungry Caterpillar", author: "Eric Carle", emoji: "🐛", tag: "Nature & Growth" },
@@ -32,31 +33,45 @@ export default function EarlyLearnersHub() {
   const [milestones, setMilestones] = useState(DEFAULT_MILESTONES);
   const [childData,  setChildData]  = useState(null);
   const [upcoming,   setUpcoming]   = useState(null);
+  const [hubLoading, setHubLoading] = useState(true);
 
-  const storedUser  = (() => { try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; } })();
-  const isEnrolled  = isAuthenticated() && storedUser?.bookClub?.group === "early-learners";
+  const storedUser  = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
+  }, []);
+  const isEnrolled  = useMemo(
+    () => isAuthenticated() && storedUser?.bookClub?.group === "early-learners",
+    [storedUser]
+  );
 
   useEffect(() => {
+    const controller = new AbortController();
     API.get("/portal/hub-content/early-learners").then(res => {
+      if (controller.signal.aborted) return;
       const data = res.data;
-      if (!data.length) return; // keep defaults if DB is empty
-      const b = data.filter(i => i.contentType === "book");
-      const a = data.filter(i => i.contentType === "activity");
-      const m = data.filter(i => i.contentType === "milestone");
-      if (b.length) setBooks(b.map(i => ({ title: i.title, author: i.author, emoji: i.emoji || "📚", tag: i.tag })));
-      if (a.length) setActivities(a.map(i => ({ icon: i.emoji || "📖", title: i.title, desc: i.description })));
-      if (m.length) setMilestones(m.map(i => ({ label: i.weekLabel, title: i.title, desc: i.description })));
-    }).catch(() => {});
+      if (data.length) {
+        const b = data.filter(i => i.contentType === "book");
+        const a = data.filter(i => i.contentType === "activity");
+        const m = data.filter(i => i.contentType === "milestone");
+        if (b.length) setBooks(b.map(i => ({ title: i.title, author: i.author, emoji: i.emoji || "📚", tag: i.tag })));
+        if (a.length) setActivities(a.map(i => ({ icon: i.emoji || "📖", title: i.title, desc: i.description })));
+        if (m.length) setMilestones(m.map(i => ({ label: i.weekLabel, title: i.title, desc: i.description })));
+      }
+    }).catch(() => {}).finally(() => { if (!controller.signal.aborted) setHubLoading(false); });
+    return () => controller.abort();
+  }, []);
 
-    if (isEnrolled) {
-      Promise.all([
-        API.get("/portal/my-child"),
-        API.get("/portal/upcoming-session"),
-      ]).then(([cRes, uRes]) => {
-        setChildData(cRes.data);
-        setUpcoming(uRes.data);
-      }).catch(() => {});
-    }
+  useEffect(() => {
+    if (!isEnrolled) return;
+    const controller = new AbortController();
+    Promise.all([
+      API.get("/portal/my-child"),
+      API.get("/portal/upcoming-session"),
+    ]).then(([cRes, uRes]) => {
+      if (controller.signal.aborted) return;
+      setChildData(cRes.data);
+      setUpcoming(uRes.data);
+    }).catch(() => {});
+    return () => controller.abort();
   }, [isEnrolled]);
 
   return (
@@ -427,13 +442,23 @@ export default function EarlyLearnersHub() {
             to build early literacy in a warm, supportive setting.
           </p>
           <div className="el-activities">
-            {activities.map((a) => (
-              <div className="el-activity" key={a.title}>
-                <span className="el-activity-icon">{a.icon}</span>
-                <div className="el-activity-title">{a.title}</div>
-                <div className="el-activity-desc">{a.desc}</div>
-              </div>
-            ))}
+            {hubLoading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <div className="el-activity" key={i}>
+                    <Skeleton height={30} width={30} borderRadius={8} style={{ marginBottom: 12 }} />
+                    <Skeleton height={14} width="60%" style={{ marginBottom: 8 }} />
+                    <Skeleton height={12} width="90%" style={{ marginBottom: 4 }} />
+                    <Skeleton height={12} width="70%" />
+                  </div>
+                ))
+              : activities.map((a) => (
+                  <div className="el-activity" key={a.title}>
+                    <span className="el-activity-icon">{a.icon}</span>
+                    <div className="el-activity-title">{a.title}</div>
+                    <div className="el-activity-desc">{a.desc}</div>
+                  </div>
+                ))
+            }
           </div>
         </div>
 

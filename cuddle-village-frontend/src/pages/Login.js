@@ -6,6 +6,8 @@ import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 import { useLoyalty } from "../context/LoyaltyContext";
 
+function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
 function Login() {
   const navigate = useNavigate();
   const { toasts, toast } = useToast();
@@ -14,8 +16,9 @@ function Login() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({});
+  const touch = (field) => setTouched(t => ({ ...t, [field]: true }));
 
-  
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
@@ -242,6 +245,10 @@ function Login() {
         }
         .forgot-link:hover { text-decoration: underline; }
 
+        .field-error { display: block; color: #e74c3c; font-size: 12px; font-weight: 700; margin-top: 5px; }
+        .form-input.invalid { border-color: #e74c3c; background: #fff8f8; }
+        .form-input.valid   { border-color: #16a34a; }
+
         .input-wrap { position: relative; }
         .input-wrap .form-input { padding-right: 44px; }
         .eye-btn {
@@ -256,18 +263,18 @@ function Login() {
         .submit-btn {
           width: 100%;
           padding: 15px;
-          background: linear-gradient(135deg, #C3B1E1, #afa7e7);
+          background: linear-gradient(135deg, #7c5cbf, #6040a8);
           color: #fff; border: none; border-radius: 14px;
           font-size: 16px; font-weight: 800; cursor: pointer;
           transition: all 0.2s;
           font-family: 'Nunito', sans-serif;
-          box-shadow: 0 8px 24px rgba(175,167,231,0.4);
+          box-shadow: 0 8px 24px rgba(100,70,180,0.45);
           margin-bottom: 20px;
           opacity: 1;
         }
         .submit-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(175,167,231,0.5);
+          box-shadow: 0 12px 28px rgba(100,70,180,0.6);
         }
         .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
@@ -368,10 +375,14 @@ function Login() {
                   name="email"
                   type="email"
                   placeholder="you@example.com"
-                  className="form-input"
+                  className={`form-input${touched.email ? (validateEmail(form.email) ? " valid" : " invalid") : ""}`}
                   onChange={handleChange}
+                  onBlur={() => touch("email")}
                   required
                 />
+                {touched.email && !validateEmail(form.email) && (
+                  <span className="field-error">Please enter a valid email address</span>
+                )}
               </div>
 
               <div className="form-group">
@@ -381,8 +392,9 @@ function Login() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="form-input"
+                    className={`form-input${touched.password ? (form.password.length >= 1 ? " valid" : " invalid") : ""}`}
                     onChange={handleChange}
+                    onBlur={() => touch("password")}
                     required
                   />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>

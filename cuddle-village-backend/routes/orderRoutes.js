@@ -103,7 +103,17 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
     const order = await Order.findById(new mongoose.Types.ObjectId(req.params.id));
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (newStatus) order.status = newStatus;
+    if (newStatus && newStatus !== order.status) {
+      order.status = newStatus;
+      order.statusHistory.push({
+        status:        newStatus,
+        updatedBy:     req.user._id,
+        updatedByName: req.user.name || "Admin",
+        updatedAt:     new Date(),
+      });
+    } else if (newStatus) {
+      order.status = newStatus;
+    }
 
     if (req.body.trackingNumber !== undefined) {
       order.trackingNumber = req.body.trackingNumber ? String(req.body.trackingNumber) : null;

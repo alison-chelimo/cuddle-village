@@ -3,6 +3,9 @@ import API from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
+import { SkeletonTable } from "../../components/Skeleton";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
 
 function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -46,6 +49,7 @@ function AdminProducts() {
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const { page, setPage, totalPages, pageItems } = usePagination(filtered, 10);
   const lowStock = products.filter((p) => p.stock <= 5 && p.stock > 0).length;
 
   return (
@@ -213,7 +217,7 @@ function AdminProducts() {
             </div>
 
             {loading ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#afa7e7", fontWeight: 700 }}>Loading products…</div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}><tbody><SkeletonTable rows={6} cols={5} /></tbody></table>
             ) : filtered.length === 0 ? (
               <div style={{ padding: 60, textAlign: "center", color: "#bbb", fontWeight: 700 }}>
                 {search ? "No products match your search" : "No products found"}
@@ -241,7 +245,7 @@ function AdminProducts() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((p, i) => {
+                    {pageItems.map((p, i) => {
                       const stockLow = p.stock <= 5 && p.stock > 0;
                       const stockOut = p.stock === 0;
                       return (
@@ -331,6 +335,7 @@ function AdminProducts() {
                     })}
                   </tbody>
                 </table>
+                <Pagination page={page} totalPages={totalPages} onChange={setPage} />
               </div>
             )}
           </div>

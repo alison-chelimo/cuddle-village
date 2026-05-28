@@ -5,16 +5,31 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import useToast from "../hooks/useToast";
 import Toast from "../components/Toast";
 
+const COUNTRY_CODES = [
+  { code: "+254", label: "🇰🇪 +254 Kenya" },
+  { code: "+255", label: "🇹🇿 +255 Tanzania" },
+  { code: "+256", label: "🇺🇬 +256 Uganda" },
+  { code: "+234", label: "🇳🇬 +234 Nigeria" },
+  { code: "+27",  label: "🇿🇦 +27 South Africa" },
+  { code: "+44",  label: "🇬🇧 +44 United Kingdom" },
+  { code: "+1",   label: "🇺🇸 +1 USA/Canada" },
+];
+
+function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
 function Register() {
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
   });
+  const [countryCode, setCountryCode] = useState("+254");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toasts, toast } = useToast();
+  const [touched, setTouched] = useState({});
+  const touch = (field) => setTouched(t => ({ ...t, [field]: true }));
 
   const pwRules = [
     { label: "At least 8 characters",       met: form.password.length >= 8 },
@@ -66,8 +81,11 @@ function Register() {
 
     setLoading(true);
     try {
+      const phoneLocal = form.phone.replace(/^0/, "");
+      const fullPhone = form.phone ? `${countryCode}${phoneLocal}` : "";
       const payload = {
         ...form,
+        phone: fullPhone || undefined,
         ...(joinBookClub ? { bookClub: { ...bookClub, group: getGroup(bookClub.childAge) } } : {}),
       };
 
@@ -240,16 +258,16 @@ function Register() {
 
         .submit-btn {
           width: 100%; padding: 15px;
-          background: linear-gradient(135deg, #C3B1E1, #afa7e7);
+          background: linear-gradient(135deg, #7c5cbf, #6040a8);
           color: #fff; border: none; border-radius: 14px;
           font-size: 16px; font-weight: 800; cursor: pointer;
           transition: all 0.2s; font-family: 'Nunito', sans-serif;
-          box-shadow: 0 8px 24px rgba(175,167,231,0.4);
+          box-shadow: 0 8px 24px rgba(100,70,180,0.45);
           margin-bottom: 20px;
         }
         .submit-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(175,167,231,0.5);
+          box-shadow: 0 12px 28px rgba(100,70,180,0.6);
         }
         .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
@@ -258,6 +276,19 @@ function Register() {
         }
         .auth-switch a { color: #8b7fd4; font-weight: 800; text-decoration: none; }
         .auth-switch a:hover { text-decoration: underline; }
+
+        .field-error { display: block; color: #e74c3c; font-size: 12px; font-weight: 700; margin-top: 5px; }
+        .form-input.invalid { border-color: #e74c3c; background: #fff8f8; }
+        .form-input.valid   { border-color: #16a34a; }
+
+        .phone-row { display: flex; gap: 8px; }
+        .cc-select {
+          padding: 13px 10px; border: 1.5px solid #e8e4f8; border-radius: 12px;
+          font-size: 13px; font-family: 'Nunito', sans-serif; font-weight: 700;
+          background: #faf9fe; cursor: pointer; flex-shrink: 0; min-width: 130px;
+          color: #2d2640; transition: all 0.2s;
+        }
+        .cc-select:focus { outline: none; border-color: #afa7e7; background: #fff; box-shadow: 0 0 0 3px rgba(175,167,231,0.12); }
 
         /* ── Book-club section ──────────────────────────────────────────── */
         .section-divider {
@@ -409,17 +440,41 @@ function Register() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
-                  <input name="name" placeholder="Jane Doe" className="form-input" onChange={handleChange} required />
+                  <input
+                    name="name" placeholder="Jane Doe"
+                    className={`form-input${touched.name ? (form.name.trim().length >= 2 ? " valid" : " invalid") : ""}`}
+                    onChange={handleChange} onBlur={() => touch("name")} required
+                  />
+                  {touched.name && form.name.trim().length < 2 && (
+                    <span className="field-error">Please enter your full name</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone</label>
-                  <input name="phone" placeholder="07XX XXX XXX" className="form-input" onChange={handleChange} />
+                  <div className="phone-row">
+                    <select className="cc-select" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                      {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                    </select>
+                    <input
+                      name="phone" placeholder="712 345 678"
+                      className="form-input"
+                      onChange={handleChange}
+                      style={{ flex: 1, minWidth: 0 }}
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Email</label>
-                <input name="email" type="email" placeholder="you@example.com" className="form-input" onChange={handleChange} required />
+                <input
+                  name="email" type="email" placeholder="you@example.com"
+                  className={`form-input${touched.email ? (validateEmail(form.email) ? " valid" : " invalid") : ""}`}
+                  onChange={handleChange} onBlur={() => touch("email")} required
+                />
+                {touched.email && !validateEmail(form.email) && (
+                  <span className="field-error">Please enter a valid email address</span>
+                )}
               </div>
 
               <div className="form-group">
