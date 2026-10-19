@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { CartContext } from "../context/CartContext";
 import { getCategoryEmoji, getCategoryLabel } from "../data/products";
