@@ -15,7 +15,7 @@ function TabBtn({ active, onClick, children }) {
     }}>{children}</button>
   );
 }
-
+ 
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -152,7 +152,7 @@ function SessionsTab() {
     API.get("/portal/admin/sessions").then(r => setSessions(r.data)).catch(() => {});
     API.get("/portal/admin/enrolled").then(r => setEnrolled(r.data)).catch(() => {});
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const createSession = async () => {
     setSaving(true);
@@ -260,7 +260,7 @@ function HubContentTab() {
   const [saving, setSaving]   = useState(false);
 
   const load = () => API.get("/portal/admin/hub-content").then(r => setItems(r.data)).catch(() => {});
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const openAdd  = () => { setEdit(null); setFormData({ group: "early-learners", contentType: "book", title: "", author: "", emoji: "", tag: "", description: "", weekLabel: "", order: 0 }); setForm(true); };
   const openEdit = (item) => { setEdit(item); setFormData({ ...item }); setForm(true); };

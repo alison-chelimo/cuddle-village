@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import API from "../services/api";
 
 export const CartContext = createContext();
 
@@ -17,6 +18,21 @@ export function CartProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    const validateCartProducts = async () => {
+      try {
+        const res = await API.get("/products");
+        const validProductIds = new Set((res.data || []).map((product) => product._id));
+
+        setCart((prev) => prev.filter((item) => validProductIds.has(item._id)));
+      } catch {
+        // Keep the existing cart if products cannot be fetched.
+      }
+    };
+
+    validateCartProducts();
+  }, []);
 
   // Add to cart
   const addToCart = (product) => {

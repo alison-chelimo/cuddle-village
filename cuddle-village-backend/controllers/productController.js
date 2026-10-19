@@ -1,5 +1,8 @@
 const Product = require("../models/Product");
 
+// NOTE: This controller appears unused by current router wiring in server.js (productRoutes is mounted directly).
+// Keep as-is unless confirmed safe to remove.
+
 // GET all products
 exports.getProducts = async (req, res) => {
   const products = await Product.find();

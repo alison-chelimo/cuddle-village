@@ -13,6 +13,12 @@ function AdminProducts() {
 
   useEffect(() => { fetchProducts(); }, []);
 
+  useEffect(() => {
+    const onFocus = () => fetchProducts();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   const fetchProducts = async () => {
   try {
     const res = await API.get("/products");

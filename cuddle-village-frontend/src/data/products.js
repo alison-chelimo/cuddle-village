@@ -265,6 +265,8 @@ export const FLAT_PRODUCTS = CATALOG.flatMap(cat =>
       category:    cat.id,
       subcategory: sub.id,
       name:        p.name,
+      baseProduct: p.name,
+      brand:       null,
       size:        p.size ?? null,
       emoji:       cat.emoji,
       price:       null,
@@ -288,4 +290,10 @@ export function getCategoryLabel(categoryId) {
 export function getSubcategories(categoryId) {
   const cat = CATALOG.find(c => c.id === categoryId);
   return cat ? cat.subcategories : [];
+}
+
+export function getBaseProductNames(categoryId) {
+  const cat = CATALOG.find(c => c.id === categoryId);
+  if (!cat) return [];
+  return cat.subcategories.flatMap(sub => sub.products.map(p => p.name));
 }

@@ -10,7 +10,7 @@ function Home() {
   ];
 
   const highlights = [
-    { label: "Free Shipping", icon: "🚚", desc: "Orders over KES 2,000" },
+    { label: "Free Shipping", icon: "🚚", desc: "Orders over KES 5,000" },
     { label: "Verified Quality", icon: "✅", desc: "Curated just for you" },
     { label: "Easy Returns", icon: "↩️", desc: "Hassle-free returns" },
     { label: "24/7 Support", icon: "💬", desc: "Always here to help" },

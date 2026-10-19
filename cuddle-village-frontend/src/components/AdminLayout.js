@@ -2,24 +2,12 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FaBars } from "react-icons/fa";
 import { logout } from "../utils/auth";
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { FaBars } from "react-icons/fa";
-import { logout } from "../utils/auth";
 
 function AdminLayout({ children }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navLinks = [
-    { to: "/admin/admin-dashboard", label: "Dashboard",   emoji: "📊" },
-    { to: "/admin/products",        label: "Products",    emoji: "🛍️" },
-    { to: "/admin/products/add",    label: "Add Product", emoji: "➕" },
-    { to: "/admin/users",           label: "Users",       emoji: "👥" },
-    { to: "/admin/orders",          label: "Orders",      emoji: "📋" },
-    { to: "/admin/promo-codes",     label: "Promo Codes", emoji: "🏷️" },
-    { to: "/admin/book-club",       label: "Book Club",   emoji: "📚" },
     { to: "/admin/admin-dashboard", label: "Dashboard",   emoji: "📊" },
     { to: "/admin/products",        label: "Products",    emoji: "🛍️" },
     { to: "/admin/products/add",    label: "Add Product", emoji: "➕" },

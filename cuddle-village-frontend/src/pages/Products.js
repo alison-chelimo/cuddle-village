@@ -42,7 +42,8 @@ function ProductImageBox({ product, height = 175 }) {
 }
 
 function enrichProduct(p) {
-  const match = FLAT_PRODUCTS.find(fp => fp.name.toLowerCase() === p.name?.toLowerCase());
+  const incomingBase = (p.baseProduct || p.name || "").toLowerCase();
+  const match = FLAT_PRODUCTS.find(fp => (fp.baseProduct || fp.name || "").toLowerCase() === incomingBase);
   return { ...match, ...p, emoji: p.emoji ?? match?.emoji ?? "🛍️" };
 }
 
@@ -109,7 +110,7 @@ export default function Products() {
 
   return (
     <>
-      <style>{`
+      <style>{` 
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
         .products-page { font-family:'Nunito',sans-serif; background:#faf9fe; min-height:100vh; }
 
