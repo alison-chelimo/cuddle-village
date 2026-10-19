@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
 
 const GROUP_OPTS = ["early-learners", "growing-readers"];
 const CONTENT_TYPES = ["book", "activity", "milestone"];
@@ -44,6 +46,7 @@ function EnrolledTab() {
   }, []);
 
   const filtered = groupFilter ? children.filter(c => c.bookClub?.group === groupFilter) : children;
+  const { page, setPage, totalPages, pageItems: pageChildren } = usePagination(filtered, 10);
 
   const openNotes = (u) => setNotesModal({
     userId: u._id,
@@ -89,7 +92,7 @@ function EnrolledTab() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(u => (
+            {pageChildren.map(u => (
               <tr key={u._id} style={{ fontSize: 13, fontWeight: 600 }}>
                 <td style={{ padding: "13px 12px", borderBottom: "1px solid #f5f3ff" }}>
                   <div style={{ fontWeight: 800, color: "#2d2640" }}>{u.bookClub?.childName || "—"}</div>
@@ -107,11 +110,12 @@ function EnrolledTab() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {pageChildren.length === 0 && (
               <tr><td colSpan={5} style={{ padding: 32, textAlign: "center", color: "#aaa", fontWeight: 700 }}>No enrolled children</td></tr>
             )}
           </tbody>
         </table>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </div>
 
       {/* Notes modal */}

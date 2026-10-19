@@ -339,12 +339,14 @@ export default function BookClub() {
         }
         .bc-plan.featured::before {
           content: 'Most Popular';
-          position: absolute; top: 16px; right: -28px;
+          position: absolute; top: 12px; right: 12px;
           background: linear-gradient(135deg,#C3B1E1,#afa7e7);
-          color: #1a1530; font-size: 10px; font-weight: 900;
-          padding: 4px 40px; transform: rotate(45deg);
+          color: #1a1530; font-size: 9px; font-weight: 900;
+          padding: 4px 10px; border-radius: 20px;
           letter-spacing: 1px; text-transform: uppercase;
+          transform: none;
         }
+        .bc-plan.featured { padding-top: 44px; }
         .bc-plan:hover {
           transform: translateY(-6px);
           border-color: rgba(195,177,225,0.35);
@@ -670,9 +672,9 @@ export default function BookClub() {
                 ))}
                 <button
                   className="bc-plan-btn"
-                  onClick={() => navigate(user ? "/register" : "/register")}
+                  onClick={() => navigate(user ? "/book-club/register" : "/register")}
                 >
-                  {user ? "Switch Plan" : "Get Started"}
+                  {user ? "Enrol Now" : "Get Started"}
                 </button>
               </div>
             ))}
@@ -732,7 +734,7 @@ export default function BookClub() {
             <p className="bc-cta-sub">
               Join hundreds of Nairobi families giving their children the gift of reading.
             </p>
-            <Link to="/register" className="bc-cta-btn">
+            <Link to={user ? "/book-club/register" : "/register"} className="bc-cta-btn">
               Enrol Your Child Today →
             </Link>
           </div>

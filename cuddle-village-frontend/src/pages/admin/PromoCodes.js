@@ -4,6 +4,8 @@ import AdminLayout from "../../components/AdminLayout";
 import ConfirmModal from "../../components/ConfirmModal";
 import useToast from "../../hooks/useToast";
 import Toast from "../../components/Toast";
+import Pagination from "../../components/Pagination";
+import usePagination from "../../hooks/usePagination";
 
 const EMPTY = {
   code: "", description: "", discountType: "percentage",
@@ -80,6 +82,7 @@ export default function PromoCodes() {
   const isExpired = (expiresAt) => expiresAt && new Date(expiresAt) < new Date();
   const active  = codes.filter(c => c.isActive && !isExpired(c.expiresAt)).length;
   const expired = codes.filter(c => isExpired(c.expiresAt)).length;
+  const { page, setPage, totalPages, pageItems } = usePagination(codes, 10);
 
   return (
     <>
@@ -260,7 +263,7 @@ export default function PromoCodes() {
                     </tr>
                   </thead>
                   <tbody>
-                    {codes.map(c => {
+                    {pageItems.map(c => {
                       const exp = isExpired(c.expiresAt);
                       return (
                         <tr key={c._id}>
@@ -323,6 +326,7 @@ export default function PromoCodes() {
                     })}
                   </tbody>
                 </table>
+                <Pagination page={page} totalPages={totalPages} onChange={setPage} />
               </div>
             )}
           </div>

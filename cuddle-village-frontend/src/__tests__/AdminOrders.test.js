@@ -21,8 +21,11 @@ const baseOrder = {
   user: { name: "Jane Doe", email: "jane@example.com" },
 };
 
-// The component renders both a desktop table and mobile cards, so many
-// text nodes appear twice. Use getAllByText/getAllByRole(...)[0] for those.
+// Opens the manage/expand panel for the first order (desktop row)
+const openManage = async () => {
+  await waitFor(() => expect(screen.getAllByRole("button", { name: /Manage/i })[0]).toBeInTheDocument());
+  fireEvent.click(screen.getAllByRole("button", { name: /Manage/i })[0]);
+};
 
 describe("AdminOrders page", () => {
   beforeEach(() => {
@@ -45,37 +48,40 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("shows Processing button for pending orders", async () => {
+  it("shows Processing stat card", async () => {
     renderAdmin();
     await waitFor(() =>
       expect(screen.getAllByText(/Processing/i)[0]).toBeInTheDocument()
     );
   });
 
-  it("shows Cancel button for pending orders", async () => {
+  it("shows Cancel button inside manage panel for pending orders", async () => {
     renderAdmin();
+    await openManage();
     await waitFor(() =>
       expect(screen.getAllByRole("button", { name: /Cancel/i })[0]).toBeInTheDocument()
     );
   });
 
-  it("shows Mark Shipped button for processing orders", async () => {
+  it("shows Shipped option in status select for processing orders", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "processing" }] });
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByText(/Mark Shipped/i)[0]).toBeInTheDocument()
-    );
+    await openManage();
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    const options = Array.from(select.options).map(o => o.value);
+    expect(options).toContain("shipped");
   });
 
-  it("shows Delivered button for shipped orders", async () => {
+  it("shows Delivered option in status select for shipped orders", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "shipped" }] });
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Delivered/i })[0]).toBeInTheDocument()
-    );
+    await openManage();
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    const options = Array.from(select.options).map(o => o.value);
+    expect(options).toContain("delivered");
   });
 
-  it("shows dash for delivered orders", async () => {
+  it("shows Delivered status badge for delivered orders", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "delivered" }] });
     renderAdmin();
     await waitFor(() =>
@@ -83,7 +89,7 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("shows dash for cancelled orders", async () => {
+  it("shows Cancelled status badge for cancelled orders", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "cancelled" }] });
     renderAdmin();
     await waitFor(() =>
@@ -91,17 +97,19 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("calls API.put with processing when Processing is clicked", async () => {
+  it("calls API.put with processing when status changed to processing and saved", async () => {
     API.put.mockResolvedValue({ data: { ...baseOrder, status: "processing" } });
     API.get
       .mockResolvedValueOnce({ data: [baseOrder] })
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "processing" }] });
 
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Processing/i })[0]).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Processing/i })[0]);
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "processing" } });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
 
     await waitFor(() =>
       expect(API.put).toHaveBeenCalledWith(
@@ -111,15 +119,19 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("calls API.put with cancelled when Cancel is clicked", async () => {
+  it("calls API.put with cancelled when status changed to cancelled and saved", async () => {
     API.put.mockResolvedValue({ data: { ...baseOrder, status: "cancelled" } });
     API.get
       .mockResolvedValueOnce({ data: [baseOrder] })
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "cancelled" }] });
 
     renderAdmin();
-    await waitFor(() => screen.getAllByRole("button", { name: /Cancel/i })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: /Cancel/i })[0]);
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "cancelled" } });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
 
     await waitFor(() =>
       expect(API.put).toHaveBeenCalledWith(
@@ -141,11 +153,11 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("shows no orders when fetch fails", async () => {
+  it("shows no orders message when fetch fails", async () => {
     API.get.mockRejectedValue(new Error("Network error"));
     renderAdmin();
     await waitFor(() =>
-      expect(screen.getByText(/No orders found/i)).toBeInTheDocument()
+      expect(screen.getByText(/No orders match your search/i)).toBeInTheDocument()
     );
   });
 
@@ -157,15 +169,19 @@ describe("AdminOrders page", () => {
     fireEvent.click(screen.getByText(/Back to Dashboard/i));
   });
 
-  it("calls API.put with delivered when Delivered is clicked", async () => {
+  it("calls API.put with delivered when status changed to delivered and saved", async () => {
     API.put.mockResolvedValue({ data: { ...baseOrder, status: "delivered" } });
     API.get
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "shipped" }] })
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "delivered" }] });
 
     renderAdmin();
-    await waitFor(() => screen.getAllByRole("button", { name: /Delivered/i })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: /Delivered/i })[0]);
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "delivered" } });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
 
     await waitFor(() =>
       expect(API.put).toHaveBeenCalledWith(
@@ -175,35 +191,43 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("shows tracking input row when Mark Shipped is clicked for processing order", async () => {
+  it("shows tracking input when status changed to shipped in manage panel", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "processing" }] });
     renderAdmin();
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "shipped" } });
+
     await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]).toBeInTheDocument()
+      expect(document.querySelector(".tracking-input")).toBeInTheDocument()
     );
-    fireEvent.click(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]);
-    const input = await waitFor(() => document.querySelector(".tracking-input"));
-    // Exercise onChange and onKeyDown Escape handlers
-    fireEvent.change(input, { target: { value: "TRK-001" } });
-    fireEvent.keyDown(input, { key: "Escape" });
+
+    fireEvent.change(document.querySelector(".tracking-input"), { target: { value: "TRK-001" } });
+
+    // Cancel closes the panel
+    fireEvent.click(screen.getAllByRole("button", { name: /Cancel/i })[0]);
     await waitFor(() =>
       expect(document.querySelector(".tracking-input")).not.toBeInTheDocument()
     );
   });
 
-  it("tracking input submits via Enter key", async () => {
+  it("tracking input value is included when Save is clicked", async () => {
     API.put.mockResolvedValue({ data: { ...baseOrder, status: "shipped" } });
     API.get
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "processing" }] })
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "shipped" }] });
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]);
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "shipped" } });
+
     const input = await waitFor(() => document.querySelector(".tracking-input"));
     fireEvent.change(input, { target: { value: "TRK-002" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
+
     await waitFor(() =>
       expect(API.put).toHaveBeenCalledWith(
         `/orders/${baseOrder._id}`,
@@ -212,18 +236,19 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("tracking Confirm button ships the order", async () => {
+  it("ships order via Save button", async () => {
     API.put.mockResolvedValue({ data: { ...baseOrder, status: "shipped" } });
     API.get
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "processing" }] })
       .mockResolvedValueOnce({ data: [{ ...baseOrder, status: "shipped" }] });
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Mark Shipped/i })[0]);
-    await waitFor(() => document.querySelector(".btn-confirm"));
-    fireEvent.click(document.querySelector(".btn-confirm"));
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "shipped" } });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
+
     await waitFor(() =>
       expect(API.put).toHaveBeenCalledWith(
         `/orders/${baseOrder._id}`,
@@ -232,13 +257,10 @@ describe("AdminOrders page", () => {
     );
   });
 
-  it("shows tracking edit button for shipped orders and opens row", async () => {
+  it("shows tracking input for shipped orders when manage panel opened", async () => {
     API.get.mockResolvedValue({ data: [{ ...baseOrder, status: "shipped", trackingNumber: "TRK-KE-001" }] });
     renderAdmin();
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /Tracking/i })[0]).toBeInTheDocument()
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Tracking/i })[0]);
+    await openManage();
     await waitFor(() =>
       expect(document.querySelector(".tracking-input")).toBeInTheDocument()
     );
@@ -249,8 +271,12 @@ describe("AdminOrders page", () => {
     API.put.mockRejectedValue({ response: { data: { message: "Server error" } }, message: "err" });
 
     renderAdmin();
-    await waitFor(() => screen.getAllByRole("button", { name: /Processing/i })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: /Processing/i })[0]);
+    await openManage();
+
+    const select = await waitFor(() => document.querySelector(".status-select"));
+    fireEvent.change(select, { target: { value: "processing" } });
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Save$/i })[0]);
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Server error")));
     alertSpy.mockRestore();

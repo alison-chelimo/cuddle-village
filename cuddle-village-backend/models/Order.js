@@ -73,6 +73,15 @@ const orderSchema = new mongoose.Schema(
     trackingNumber: { type: String, default: null },
 
     receiptSent: { type: Boolean, default: false },
+
+    statusHistory: [
+      {
+        status:        { type: String },
+        updatedBy:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        updatedByName: { type: String },
+        updatedAt:     { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

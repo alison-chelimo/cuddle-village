@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import readersImg from "../assets/readers.png";
 import API from "../services/api";
 import { isAuthenticated } from "../utils/auth";
@@ -41,11 +41,18 @@ export default function GrowingReadersHub() {
   const [childData,     setChildData]  = useState(null);
   const [upcoming,      setUpcoming]   = useState(null);
 
-  const storedUser = (() => { try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; } })();
-  const isEnrolled = isAuthenticated() && storedUser?.bookClub?.group === "growing-readers";
+  const storedUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
+  }, []);
+  const isEnrolled = useMemo(
+    () => isAuthenticated() && storedUser?.bookClub?.group === "growing-readers",
+    [storedUser]
+  );
 
   useEffect(() => {
+    const controller = new AbortController();
     API.get("/portal/hub-content/growing-readers").then(res => {
+      if (controller.signal.aborted) return;
       const data = res.data;
       if (!data.length) return;
       const b = data.filter(i => i.contentType === "book");
@@ -55,16 +62,21 @@ export default function GrowingReadersHub() {
       if (a.length) setActivities(a.map(i => ({ icon: i.emoji || "📖", title: i.title, desc: i.description })));
       if (m.length) setMilestones(m.map(i => ({ label: i.weekLabel, title: i.title, desc: i.description })));
     }).catch(() => {});
+    return () => controller.abort();
+  }, []);
 
-    if (isEnrolled) {
-      Promise.all([
-        API.get("/portal/my-child"),
-        API.get("/portal/upcoming-session"),
-      ]).then(([cRes, uRes]) => {
-        setChildData(cRes.data);
-        setUpcoming(uRes.data);
-      }).catch(() => {});
-    }
+  useEffect(() => {
+    if (!isEnrolled) return;
+    const controller = new AbortController();
+    Promise.all([
+      API.get("/portal/my-child"),
+      API.get("/portal/upcoming-session"),
+    ]).then(([cRes, uRes]) => {
+      if (controller.signal.aborted) return;
+      setChildData(cRes.data);
+      setUpcoming(uRes.data);
+    }).catch(() => {});
+    return () => controller.abort();
   }, [isEnrolled]);
 
   return (
