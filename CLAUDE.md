@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Backend (from cuddle-village-backend/)
-npm run dev          # node --watch server.js, http://localhost:5000
+npm run dev          # node --watch, restarts on code or .env changes (Node 22.9+), http://localhost:5000
 npm start            # node server.js (production)
 node Seedproducts.js # seed ~70 products (clears existing first)
 node seedUsers.js    # seed sample admin / facilitator / customer accounts
